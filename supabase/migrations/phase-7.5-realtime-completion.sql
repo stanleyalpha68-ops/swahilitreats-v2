@@ -1,0 +1,30 @@
+-- ============================================================================
+-- PHASE 7.5 — Realtime Completion
+-- ============================================================================
+-- Audit method: grepped every HTML entry point for `.channel(` (all quote
+-- styles — an earlier pass of this audit missed track.html's and
+-- customer-hub.html's channels because they use template-literal channel
+-- names; corrected before drawing conclusions here).
+--
+-- Actual coverage found:
+--   admin.html          — 14 channels (orders, inventory, invr-reports,
+--                          executive, business rules, approvals, audit log,
+--                          ops health, ops center, branch mgmt, comm center
+--                          x2, media center, settings center)
+--   track.html           — order status by order_id, customer notifications
+--   customer-hub.html    — customer-hub-{phone}
+--   employee/index.html  — orders-live, deliveries-realtime, employee-inventory-realtime
+--   index.html, products.html, success.html, login pages — none (expected;
+--                          these are one-shot/marketing/auth pages with no
+--                          "watch this data live" use case)
+--
+-- The one real gap: employee/index.html's `notifications` table was only
+-- ever fetched once per page load / manual navigation to the Notifications
+-- page — a notification created while an employee had the app open sat
+-- invisible until they re-opened that page. employee/index.html now
+-- subscribes to it (see subscribeNotificationsRealtime()); this migration
+-- is the other half of that fix — the table has to be added to the
+-- publication or the client-side subscription receives nothing.
+-- ============================================================================
+
+alter publication supabase_realtime add table public.notifications;

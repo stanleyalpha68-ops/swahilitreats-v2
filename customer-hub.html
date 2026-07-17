@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>My Account - Swahili Treats</title>
+    <meta name="theme-color" content="#219ebc" />
+    <meta name="description" content="Your Swahili Treats order history, rewards, and loyalty status." />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* PHASE 7.1 — Swahili Treats Design System */
+        --primary: #ff9f1c;
+        --secondary: #0e7c86;
+        --accent: #e3b778;
+        --bg: linear-gradient(135deg, #fffbf5 0%, #fdf0e1 50%, #ffe8cc 100%);
+        --button: #ff9f1c;
+        --button-hover: #e8890a;
+        --text: #2b2620;
+        --text-muted: #6b6255;
+        --border: #efe4d3;
+        --card: #ffffff;
+
+        --gray: #9e9488;   --gray-bg: #f1ece2;
+        --blue: #0e7c86;   --blue-bg: #e3f2f3;
+        --orange: #ff9f1c; --orange-bg: #fff1de;
+        --purple: #8b5cf6; --purple-bg: #ede9fe;
+        --green: #4c9a2a;  --green-bg: #e9f5e2;
+        --red: #b91c1c;    --red-bg: #fbe6e6;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Manrope", "Quicksand", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      a { color: inherit; }
+
+      header {
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        padding: 1.4rem 1rem 1.2rem;
+        text-align: center;
+        border-bottom-left-radius: 1.6rem;
+        border-bottom-right-radius: 1.6rem;
+        box-shadow: 0 4px 16px rgba(34, 34, 59, 0.08);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      .header-logo {
+        font-family: "Fredoka", cursive;
+        font-size: 1.5rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      }
+      .header-sub { font-size: 0.85rem; color: rgba(255,255,255,0.92); margin-top: 0.2rem; font-weight: 600; }
+      .header-link {
+        position: absolute; top: 1.1rem; right: 1rem;
+        background: rgba(255,255,255,0.22);
+        border: none; border-radius: 1.3rem;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.78rem; font-weight: 700; color: #fff;
+        text-decoration: none;
+      }
+
+      main { max-width: 620px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+      .card {
+        background: var(--card);
+        border-radius: 1.4rem;
+        padding: 1.4rem 1.25rem;
+        box-shadow: 0 2px 14px rgba(34,34,59,0.07);
+        margin-bottom: 1.1rem;
+      }
+      h2.section-title {
+        font-family: "Fredoka", cursive;
+        font-size: 1.1rem;
+        margin: 0 0 0.9rem;
+        display: flex; align-items: center; justify-content: space-between; gap: 0.5em;
+      }
+      h2.section-title span.st-icon-label { display: flex; align-items: center; gap: 0.4em; }
+
+      /* ── Phone gate ─────────────────────────────────────────────── */
+      .search-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.9rem; }
+      .search-field label { font-size: 0.82rem; font-weight: 700; color: var(--text-muted); }
+      .search-field input {
+        font-family: inherit; font-size: 1rem; padding: 0.85rem 1rem;
+        border-radius: 1rem; border: 1.5px solid var(--border); background: #fafafa; min-height: 3rem;
+      }
+      .search-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(227, 183, 120, 0.35); background: #fff; }
+      .btn {
+        font-family: inherit; font-weight: 700; font-size: 0.9rem;
+        border-radius: 1.2rem; padding: 0.8rem 1.1rem; border: none; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.4em;
+        min-height: 2.9rem; transition: transform 0.1s, background 0.15s, opacity 0.15s;
+      }
+      .btn:active { transform: scale(0.97); }
+      .btn-primary { background: var(--button); color: #fff; }
+      .btn-primary:hover { background: var(--button-hover); }
+      .btn-outline { background: #fff; color: var(--accent); border: 1.5px solid var(--accent); }
+      .btn-outline:hover { background: #eef8fb; }
+      .btn-ghost { background: #f4f4f8; color: var(--text); }
+      .btn-ghost:hover { background: #eaeaf0; }
+      .btn-block { width: 100%; }
+      .btn-sm { font-size: 0.78rem; padding: 0.55rem 0.8rem; min-height: 2.3rem; }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .search-error { color: var(--red); font-size: 0.85rem; margin-top: 0.6rem; text-align: center; min-height: 1.1em; }
+
+      /* ── Welcome ────────────────────────────────────────────────── */
+      .welcome-card { text-align: center; background: linear-gradient(135deg, #fff8ea, #eaf8fb); }
+      .welcome-card .wc-emoji { font-size: 2.2rem; }
+      .welcome-card h1 { font-family: "Fredoka", cursive; font-size: 1.25rem; margin: 0.3rem 0 0.1rem; }
+      .welcome-card p { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
+
+      /* ── Stat grid (Part 2) ─────────────────────────────────────── */
+      .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .stat-card {
+        background: #fafafd; border-radius: 1rem; padding: 0.85rem 0.9rem;
+        text-align: center; border: 1px solid #f2f2f6;
+      }
+      .stat-num { font-family: "Fredoka", cursive; font-size: 1.15rem; color: var(--accent); }
+      .stat-num.money { color: var(--secondary); }
+      .stat-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; line-height: 1.3; }
+
+      /* ── VIP / loyalty ──────────────────────────────────────────── */
+      .vip-hero { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1rem; }
+      .vip-icon { font-size: 2.4rem; }
+      .vip-level-name { font-family: "Fredoka", cursive; font-size: 1.15rem; }
+      .vip-points { font-size: 0.83rem; color: var(--text-muted); }
+      .progress-track { background: #f0f0f4; border-radius: 1rem; height: 0.65rem; overflow: hidden; margin: 0.5rem 0 0.4rem; }
+      .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 1rem; transition: width 0.4s ease; }
+      .progress-note { font-size: 0.78rem; color: var(--text-muted); }
+      .benefits-list { margin: 0.8rem 0 0; padding: 0; list-style: none; font-size: 0.85rem; }
+      .benefits-list li { padding: 0.3rem 0; display: flex; gap: 0.5em; align-items: flex-start; }
+
+      /* ── Rewards ────────────────────────────────────────────────── */
+      .reward-row {
+        display: flex; justify-content: space-between; align-items: center; gap: 0.8rem;
+        padding: 0.7rem 0.85rem; border-radius: 0.9rem; background: #fafafd; border: 1px solid #f2f2f6; margin-bottom: 0.55rem;
+      }
+      .reward-row.locked { opacity: 0.55; }
+      .reward-row .rr-title { font-weight: 700; font-size: 0.88rem; }
+      .reward-row .rr-sub { font-size: 0.76rem; color: var(--text-muted); }
+      .reward-tag { font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.55rem; border-radius: 1rem; background: var(--green-bg); color: var(--green); }
+      .reward-tag.soon { background: var(--gray-bg); color: #757575; }
+
+      /* ── Referral ───────────────────────────────────────────────── */
+      .referral-code-box {
+        text-align: center; background: #fffbea; border: 1.5px dashed var(--primary);
+        border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;
+      }
+      .referral-code-box .code { font-family: "Fredoka", cursive; font-size: 1.4rem; color: var(--secondary); letter-spacing: 1px; }
+      .referral-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; text-align: center; margin-bottom: 1rem; }
+      .referral-stats .rs-num { font-family: "Fredoka", cursive; font-size: 1.1rem; color: var(--accent); }
+      .referral-stats .rs-label { font-size: 0.7rem; color: var(--text-muted); }
+
+      /* ── Favorites ──────────────────────────────────────────────── */
+      .fav-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; }
+      .fav-card {
+        border: 1px solid #f2f2f6; border-radius: 1rem; overflow: hidden; background: #fafafd;
+        display: flex; flex-direction: column;
+      }
+      .fav-card img { width: 100%; height: 5.2rem; object-fit: cover; background: #eee; }
+      .fav-card .fc-body { padding: 0.6rem 0.7rem 0.75rem; }
+      .fav-card .fc-name { font-weight: 700; font-size: 0.82rem; margin-bottom: 0.15rem; }
+      .fav-card .fc-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+
+      /* ── Savings ────────────────────────────────────────────────── */
+      .savings-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f4f4f8; font-size: 0.88rem; }
+      .savings-row:last-child { border-bottom: none; }
+      .savings-row .label { color: var(--text-muted); }
+      .savings-row .value { font-weight: 700; }
+      .savings-note { font-size: 0.76rem; color: #b0b0bc; margin-top: 0.6rem; }
+
+      /* ── Order history controls (Part 3) ───────────────────────── */
+      .oh-controls { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+      .oh-search input {
+        width: 100%; font-family: inherit; font-size: 0.88rem; padding: 0.7rem 0.9rem;
+        border-radius: 1rem; border: 1.5px solid var(--border); background: #fafafa;
+      }
+      .oh-chips { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.2rem; -webkit-overflow-scrolling: touch; }
+      .oh-chip {
+        flex-shrink: 0; background: #f4f4f8; border: none; border-radius: 1.2rem;
+        padding: 0.45rem 0.85rem; font-family: inherit; font-size: 0.78rem; font-weight: 700;
+        color: var(--text-muted); cursor: pointer; white-space: nowrap;
+      }
+      .oh-chip.active { background: var(--accent); color: #fff; }
+      .oh-sort select {
+        width: 100%; font-family: inherit; font-size: 0.85rem; padding: 0.6rem 0.8rem;
+        border-radius: 0.9rem; border: 1.5px solid var(--border); background: #fff;
+      }
+
+      /* ── Order card ─────────────────────────────────────────────── */
+      .order-card { border: 1px solid #f2f2f6; border-radius: 1.1rem; padding: 0.9rem 1rem; margin-bottom: 0.75rem; background: #fafafd; }
+      .order-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.5rem; }
+      .order-card-id { font-weight: 700; font-size: 0.92rem; }
+      .order-card-meta { font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem; }
+      .order-card-total { font-weight: 700; color: var(--secondary); font-size: 0.92rem; text-align: right; }
+      .status-badge { display: inline-flex; align-items: center; gap: 0.35em; font-weight: 700; font-size: 0.72rem; padding: 0.3rem 0.65rem; border-radius: 2rem; }
+      .badge-pending    { background: var(--gray-bg);   color: #616161; }
+      .badge-accepted   { background: var(--blue-bg);   color: var(--blue); }
+      .badge-preparing  { background: var(--orange-bg); color: var(--orange); }
+      .badge-delivering { background: var(--purple-bg); color: var(--purple); }
+      .badge-delivered  { background: var(--green-bg);  color: var(--green); }
+      .badge-cancelled  { background: var(--red-bg);    color: var(--red); }
+      .order-card-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.6rem; }
+      .order-card-actions .btn { flex: 1 1 auto; }
+
+      .oh-empty { text-align: center; padding: 2rem 1rem; color: var(--text-muted); }
+      .oh-empty .emoji { font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+
+      /* ── Star rating input ─────────────────────────────────────── */
+      .star-input { display: flex; gap: 0.3rem; font-size: 1.7rem; cursor: pointer; user-select: none; }
+      .star-input .star { color: #e0e0e6; transition: color 0.1s, transform 0.1s; }
+      .star-input .star.filled { color: var(--primary); }
+      .star-input .star:active { transform: scale(1.15); }
+
+      /* ── Modal (review + reorder confirm) ──────────────────────── */
+      .hub-modal-overlay {
+        position: fixed; inset: 0; background: rgba(20,20,35,0.45); z-index: 95;
+        display: flex; align-items: flex-end; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+      }
+      .hub-modal-overlay.open { opacity: 1; pointer-events: auto; }
+      .hub-modal {
+        background: #fff; width: 100%; max-width: 560px; max-height: 88vh;
+        border-top-left-radius: 1.6rem; border-top-right-radius: 1.6rem;
+        display: flex; flex-direction: column; transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+      }
+      .hub-modal-overlay.open .hub-modal { transform: translateY(0); }
+      .hub-modal-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1rem 1.2rem 0.7rem; border-bottom: 1px solid #f0f0f4;
+      }
+      .hub-modal-head h2 { font-family: "Fredoka", cursive; font-size: 1.05rem; margin: 0; }
+      .hub-modal-close { background: #f4f4f8; border: none; border-radius: 50%; width: 2rem; height: 2rem; cursor: pointer; color: var(--text-muted); }
+      .hub-modal-body { overflow-y: auto; padding: 1rem 1.2rem 1.4rem; -webkit-overflow-scrolling: touch; }
+
+      .review-field { margin-bottom: 1.1rem; }
+      .review-field label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; }
+      .review-field textarea {
+        width: 100%; font-family: inherit; font-size: 0.88rem; padding: 0.7rem 0.85rem;
+        border-radius: 0.9rem; border: 1.5px solid var(--border); background: #fafafa; resize: vertical; min-height: 4.2rem;
+      }
+      .photo-upload-placeholder {
+        border: 1.5px dashed var(--border); border-radius: 0.9rem; padding: 0.9rem; text-align: center;
+        font-size: 0.8rem; color: var(--text-muted); background: #fafafa;
+      }
+
+      .unavailable-list { font-size: 0.85rem; color: var(--text-muted); margin: 0.6rem 0; padding-left: 1.1rem; }
+
+      /* ── Skeletons ──────────────────────────────────────────────── */
+      @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+      .skel { background: linear-gradient(90deg, #f0f0f4 25%, #e6e6ee 37%, #f0f0f4 63%); background-size: 400px 100%; animation: shimmer 1.4s infinite linear; border-radius: 0.5rem; }
+      .skel-line { height: 0.9rem; margin-bottom: 0.6rem; }
+
+      .toast {
+        position: fixed; left: 50%; bottom: 1.4rem; transform: translateX(-50%) translateY(120%);
+        background: #22223b; color: #fff; font-size: 0.85rem; font-weight: 600;
+        padding: 0.7rem 1.2rem; border-radius: 1rem; z-index: 120; transition: transform 0.25s ease;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.25); max-width: 90vw; text-align: center;
+      }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+
+      .hidden { display: none !important; }
+
+      @media (max-width: 380px) {
+        .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        .fav-grid { grid-template-columns: 1fr 1fr; }
+        .order-card-actions .btn { flex: 1 1 45%; }
+      }
+      /* PHASE 7.1B — premium micro-interactions, additive only. */
+      button:not(:disabled):active, .btn:active { transform: scale(0.96); }
+      button, .btn { transition: transform 0.1s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s ease, background 0.15s ease; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <header>
+      <div class="header-logo">🍬 Swahili Treats</div>
+      <div class="header-sub">💛 My Account</div>
+      <a class="header-link hidden" id="track-link" href="track.html">📦 Track</a>
+    </header>
+
+    <main>
+
+      <!-- ══════════════════════════════════ PHONE GATE ══════════════════════════════════ -->
+      <section id="gate-section" class="card hidden">
+        <h2 class="section-title"><span class="st-icon-label">👋 Welcome!</span></h2>
+        <p style="font-size:0.87rem;color:var(--text-muted);margin:0 0 1rem">
+          Enter the phone number you used when ordering to see your order history, rewards, and loyalty points.
+        </p>
+        <form id="gate-form">
+          <div class="search-field">
+            <label for="gate-phone">Phone Number</label>
+            <input type="tel" id="gate-phone" placeholder="e.g. 0712345678" autocomplete="tel" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="gate-submit-btn">View My Account</button>
+          <div class="search-error" id="gate-error"></div>
+        </form>
+      </section>
+
+      <!-- ══════════════════════════════════ LOADING ══════════════════════════════════ -->
+      <section id="loading-section" class="hidden">
+        <div class="card">
+          <div class="skel skel-line" style="width:50%;margin:0 auto"></div>
+          <div class="skel skel-line" style="width:70%;margin:0.5rem auto"></div>
+        </div>
+        <div class="card">
+          <div class="skel skel-line" style="width:30%"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem">
+            <div class="skel" style="height:3.5rem"></div>
+            <div class="skel" style="height:3.5rem"></div>
+            <div class="skel" style="height:3.5rem"></div>
+            <div class="skel" style="height:3.5rem"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ EMPTY (no orders for phone) ══════════════════════════════════ -->
+      <section id="empty-section" class="card hidden">
+        <div class="oh-empty">
+          <span class="emoji">📭</span>
+          <h3 style="font-family:'Fredoka',cursive;margin:0 0 0.4rem">No orders found yet.</h3>
+          <p style="margin:0 0 1rem">We couldn't find any orders for that phone number.</p>
+          <button type="button" class="btn btn-primary" id="empty-search-again-btn">🔁 Try a Different Number</button>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ ERROR ══════════════════════════════════ -->
+      <section id="error-section" class="card hidden">
+        <div class="oh-empty">
+          <span class="emoji">⚠️</span>
+          <h3 style="font-family:'Fredoka',cursive;margin:0 0 0.4rem">Something went wrong</h3>
+          <p style="margin:0 0 1rem">We couldn't load your account right now. Please check your connection and try again.</p>
+          <button type="button" class="btn btn-primary" id="error-retry-btn">🔁 Retry</button>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════ HUB CONTENT ══════════════════════════════════ -->
+      <section id="hub-content" class="hidden">
+
+        <!-- Welcome (Part 1) -->
+        <div class="card welcome-card">
+          <div class="wc-emoji">👋</div>
+          <h1 id="welcome-title">Welcome back!</h1>
+          <p id="welcome-sub">—</p>
+        </div>
+
+        <!-- Statistics (Part 2) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">📊 Your Stats</span></h2>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-num" id="stat-total-orders">0</div><div class="stat-label">Total Orders</div></div>
+            <div class="stat-card"><div class="stat-num money" id="stat-total-spent">Ksh 0</div><div class="stat-label">Total Spent</div></div>
+            <div class="stat-card"><div class="stat-num money" id="stat-total-saved">Ksh 0</div><div class="stat-label">Total Savings</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-favorite" style="font-size:0.82rem">—</div><div class="stat-label">Favorite Product</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-most-ordered" style="font-size:0.82rem">—</div><div class="stat-label">Most Ordered</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-avg-rating">—</div><div class="stat-label">Avg Rating Given</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-points">0</div><div class="stat-label">Loyalty Points</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-vip" style="font-size:0.82rem">—</div><div class="stat-label">VIP Level</div></div>
+          </div>
+        </div>
+
+        <!-- Active orders -->
+        <div class="card hidden" id="active-orders-card">
+          <h2 class="section-title"><span class="st-icon-label">🚚 Active Orders</span></h2>
+          <div id="active-orders-list"></div>
+        </div>
+
+        <!-- Loyalty & VIP (Part 7 / Part 8) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">💛 Loyalty &amp; VIP Status</span></h2>
+          <div class="vip-hero">
+            <div class="vip-icon" id="vip-icon">🥉</div>
+            <div>
+              <div class="vip-level-name" id="vip-level-name">Bronze</div>
+              <div class="vip-points" id="vip-points-text">0 points</div>
+            </div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="vip-progress-fill" style="width:0%"></div></div>
+          <div class="progress-note" id="vip-progress-note">—</div>
+          <ul class="benefits-list" id="vip-benefits-list"></ul>
+        </div>
+
+        <!-- Rewards (Part 9) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">🎁 Rewards</span></h2>
+          <div id="rewards-list"></div>
+          <div class="reward-row locked">
+            <div><div class="rr-title">🎂 Birthday Reward</div><div class="rr-sub">A treat on your special day</div></div>
+            <span class="reward-tag soon">Coming soon</span>
+          </div>
+          <div class="reward-row locked">
+            <div><div class="rr-title">🎉 Anniversary Reward</div><div class="rr-sub">Celebrating your first order with us</div></div>
+            <span class="reward-tag soon">Coming soon</span>
+          </div>
+        </div>
+
+        <!-- Referral (Part 10) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">🤝 Refer a Friend</span></h2>
+          <div class="referral-code-box">
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.3rem">Your referral code</div>
+            <div class="code" id="referral-code">SWA-00000</div>
+          </div>
+          <div class="referral-stats">
+            <div><div class="rs-num" id="referral-invited">0</div><div class="rs-label">Friends Invited</div></div>
+            <div><div class="rs-num" id="referral-successful">0</div><div class="rs-label">Successful Referrals</div></div>
+            <div><div class="rs-num" id="referral-rewards">Ksh 0</div><div class="rs-label">Rewards Earned</div></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-block" id="referral-share-btn">📤 Share My Code</button>
+          <p class="savings-note" style="text-align:center">Referral rewards are coming soon — invite friends now and we'll credit you automatically once it launches!</p>
+        </div>
+
+        <!-- Favorite Products (Part 11) -->
+        <div class="card hidden" id="favorites-card">
+          <h2 class="section-title"><span class="st-icon-label">❤️ Favorite Products</span></h2>
+          <div class="fav-grid" id="favorites-grid"></div>
+        </div>
+
+        <!-- Savings Summary (Part 12) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">💰 Savings Summary</span></h2>
+          <div class="savings-row"><span class="label">Total Money Spent</span><span class="value" id="sv-spent">Ksh 0</span></div>
+          <div class="savings-row"><span class="label">Total Money Saved</span><span class="value" id="sv-saved">Ksh 0</span></div>
+          <div class="savings-row"><span class="label">Discounts Used</span><span class="value" id="sv-discounts">0</span></div>
+          <div class="savings-row"><span class="label">Reward Value Earned</span><span class="value" id="sv-reward-value">Ksh 0</span></div>
+          <div class="savings-row"><span class="label">Average Order Value</span><span class="value" id="sv-avg-order">Ksh 0</span></div>
+          <p class="savings-note">Discount tracking will appear here automatically once active promos are applied at checkout.</p>
+        </div>
+
+        <!-- My Reviews (Part 6) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">⭐ My Reviews</span></h2>
+          <div style="display:flex;gap:1.2rem;margin-bottom:0.9rem">
+            <div><div class="stat-num" id="reviews-avg" style="font-size:1.1rem">—</div><div class="stat-label">Avg Rating Given</div></div>
+            <div><div class="stat-num" id="reviews-total" style="font-size:1.1rem">0</div><div class="stat-label">Total Reviews</div></div>
+          </div>
+          <div id="my-reviews-list"></div>
+        </div>
+
+        <!-- Order History (Part 3) -->
+        <div class="card">
+          <h2 class="section-title"><span class="st-icon-label">🧾 Order History</span></h2>
+
+          <div class="oh-controls">
+            <div class="oh-search">
+              <input type="text" id="oh-search-input" placeholder="🔍 Search by Order ID…" aria-label="Search by Order ID" />
+            </div>
+            <div class="oh-chips" id="oh-filter-chips">
+              <button type="button" class="oh-chip active" data-filter="all">All</button>
+              <button type="button" class="oh-chip" data-filter="pending">Pending</button>
+              <button type="button" class="oh-chip" data-filter="accepted">Accepted</button>
+              <button type="button" class="oh-chip" data-filter="preparing">Preparing</button>
+              <button type="button" class="oh-chip" data-filter="delivering">Out for Delivery</button>
+              <button type="button" class="oh-chip" data-filter="delivered">Delivered</button>
+              <button type="button" class="oh-chip" data-filter="cancelled">Cancelled</button>
+            </div>
+            <div class="oh-sort">
+              <select id="oh-sort-select">
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="highest">Sort: Highest Price</option>
+                <option value="lowest">Sort: Lowest Price</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="order-history-list"></div>
+          <button type="button" class="btn btn-ghost btn-block hidden" id="oh-load-more-btn">Show More Orders</button>
+          <div class="oh-empty hidden" id="oh-empty-state">
+            <span class="emoji">🔍</span>
+            <div>No orders match your search/filters.</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-ghost btn-block" id="switch-account-btn">🔁 Not You? Switch Account</button>
+      </section>
+
+    </main>
+
+    <!-- ══════════════════════════════════ REVIEW MODAL (Part 6) ══════════════════════════════════ -->
+    <div class="hub-modal-overlay" id="review-modal-overlay">
+      <div class="hub-modal">
+        <div class="hub-modal-head">
+          <h2>⭐ Leave a Review</h2>
+          <button type="button" class="hub-modal-close" id="review-modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="hub-modal-body">
+          <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem" id="review-order-label">Order —</p>
+
+          <div class="review-field">
+            <label id="product-rating-label">Product Rating</label>
+            <div class="star-input" id="product-star-input" data-value="0" role="radiogroup" aria-labelledby="product-rating-label">
+              <span class="star" data-star="1">★</span><span class="star" data-star="2">★</span>
+              <span class="star" data-star="3">★</span><span class="star" data-star="4">★</span><span class="star" data-star="5">★</span>
+            </div>
+          </div>
+          <div class="review-field">
+            <label for="review-product-text">Product Review (optional)</label>
+            <textarea id="review-product-text" placeholder="What did you think of the product?"></textarea>
+          </div>
+
+          <div class="review-field">
+            <label id="delivery-rating-label">Delivery Rating</label>
+            <div class="star-input" id="delivery-star-input" data-value="0" role="radiogroup" aria-labelledby="delivery-rating-label">
+              <span class="star" data-star="1">★</span><span class="star" data-star="2">★</span>
+              <span class="star" data-star="3">★</span><span class="star" data-star="4">★</span><span class="star" data-star="5">★</span>
+            </div>
+          </div>
+          <div class="review-field">
+            <label for="review-delivery-text">Delivery Comment (optional)</label>
+            <textarea id="review-delivery-text" placeholder="How was the delivery experience?"></textarea>
+          </div>
+
+          <div class="review-field">
+            <label>Add a Photo (optional)</label>
+            <div class="photo-upload-placeholder">
+              📸 Photo uploads are coming soon!
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-block" id="review-submit-btn">Submit Review</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════ REORDER CONFIRM MODAL (Part 5) ══════════════════════════════════ -->
+    <div class="hub-modal-overlay" id="reorder-modal-overlay">
+      <div class="hub-modal">
+        <div class="hub-modal-head">
+          <h2>🔁 Reorder</h2>
+          <button type="button" class="hub-modal-close" id="reorder-modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="hub-modal-body" id="reorder-modal-body">
+          <!-- populated by handleReorderClick() -->
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // ═══════════════════════════════════════════════════════════════════
+      // PHASE 5.3 — CUSTOMER HUB (customer-hub.html)
+      //
+      // Reuses the exact identification model already established by
+      // Order Tracking (Phase 5.1) and Notifications (Phase 5.2): no
+      // customer accounts, everything scoped by phone number + that
+      // phone's own order history. See the migration file
+      // supabase/migrations/phase-5.3-order-reviews.sql for the one new
+      // table this phase needed (order_reviews) and why nothing else did.
+      // ═══════════════════════════════════════════════════════════════════
+
+      const SUPABASE_URL = "https://hamqmvjucrvsjhqfsehe.supabase.co";
+      const SUPABASE_ANON = "sb_publishable_8g8mp-PH2uvpPR4RbTmGsg_kdXw9fXb";
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      // ── Configurable loyalty rules (Part 7) ─────────────────────────────
+      const POINTS_SPEND_UNIT   = 100; // every this many KES spent…
+      const POINTS_PER_UNIT     = 10;  // …earns this many points
+      const POINTS_KES_VALUE    = 1;   // display-only: ~1 point ≈ KES 1 of reward value
+
+      // ── Configurable VIP ladder (Part 8) ────────────────────────────────
+      const VIP_LEVELS = [
+        { key: "bronze",   label: "Bronze",   icon: "🥉", minPoints: 0,    benefits: ["Order tracking & live notifications", "Access to seasonal announcements"] },
+        { key: "silver",   label: "Silver",   icon: "🥈", minPoints: 500,  benefits: ["All Bronze perks", "Priority customer support"] },
+        { key: "gold",     label: "Gold",     icon: "🥇", minPoints: 1500, benefits: ["All Silver perks", "Early access to new products"] },
+        { key: "platinum", label: "Platinum", icon: "💎", minPoints: 3500, benefits: ["All Gold perks", "Exclusive vouchers (coming soon)"] },
+        { key: "diamond",  label: "Diamond",  icon: "👑", minPoints: 7000, benefits: ["All Platinum perks", "Free delivery (coming soon)"] },
+      ];
+
+      const STAGE_KEYS = ["received", "accepted", "preparing", "delivering", "delivered"];
+      const STAGE_STATUS_MAP = {
+        pending: "received", accepted: "accepted", claimed: "accepted",
+        preparing: "preparing", in_progress: "preparing",
+        delivering: "delivering", out_for_delivery: "delivering", delivered: "delivered",
+      };
+      const ACTIVE_STATUSES = ["pending", "accepted", "claimed", "preparing", "in_progress", "delivering", "out_for_delivery"];
+      const STATUS_BADGE = {
+        pending:          { label: "Pending",          cls: "badge-pending"    },
+        accepted:         { label: "Accepted",         cls: "badge-accepted"   },
+        claimed:          { label: "Accepted",         cls: "badge-accepted"   },
+        preparing:        { label: "Preparing",        cls: "badge-preparing"  },
+        in_progress:      { label: "Preparing",        cls: "badge-preparing"  },
+        delivering:       { label: "Out for Delivery", cls: "badge-delivering" },
+        out_for_delivery: { label: "Out for Delivery", cls: "badge-delivering" },
+        delivered:        { label: "Delivered",        cls: "badge-delivered"  },
+        cancelled:        { label: "Cancelled",        cls: "badge-cancelled"  },
+      };
+
+      let currentPhone = null;
+      let allCustomerOrders = [];   // every order for currentPhone (bounded, newest first)
+      let myReviews = [];
+      let myReviewedOrderIds = new Set();
+      let hubRealtimeCh = null;
+
+      let hubFilter = "all";
+      let hubSort = "newest";
+      let hubSearch = "";
+      let hubVisibleCount = 10;
+
+      let reorderContext = null;         // the order currently being reordered
+      let reviewContext = null;          // the order currently being reviewed
+      let productStarValue = 0;
+      let deliveryStarValue = 0;
+
+      // ═══════════════════════════════════════════════════════════════
+      // HELPERS (mirrors track.html / success.html for consistency)
+      // ═══════════════════════════════════════════════════════════════
+      function escHtml(str) {
+        return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+      function ksh(n) { return `Ksh ${(Number(n) || 0).toLocaleString()}`; }
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      }
+      function normalizeStatus(status) {
+        return { claimed: "accepted", in_progress: "preparing", out_for_delivery: "delivering" }[status] || status || "pending";
+      }
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), 2800);
+      }
+      function show(id) { document.getElementById(id).classList.remove("hidden"); }
+      function hide(id) { document.getElementById(id).classList.add("hidden"); }
+      function hideAllTopSections() {
+        ["gate-section", "loading-section", "empty-section", "error-section", "hub-content"].forEach(hide);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §7/§8/§10 — PURE, REUSABLE BUSINESS-LOGIC FUNCTIONS
+      // Kept independent of the UI per Part 17 — none of these touch the
+      // DOM, so a future SMS/WhatsApp/Email/push feature (Part 18) can
+      // call them directly to compute the same numbers.
+      // ═══════════════════════════════════════════════════════════════
+
+      /** Part 17: calculatePoints() — derived live from spend on
+       *  delivered orders. `redeemed` defaults to 0 (no redemption flow
+       *  exists yet — Part 9) but stays a parameter so wiring up real
+       *  redemption later is a one-line change here, not a rewrite. */
+      function calculatePoints(totalSpentOnDelivered, redeemed = 0) {
+        const lifetimePoints = Math.floor((Number(totalSpentOnDelivered) || 0) / POINTS_SPEND_UNIT) * POINTS_PER_UNIT;
+        const currentPoints = Math.max(0, lifetimePoints - redeemed);
+        return { lifetimePoints, redeemed, currentPoints };
+      }
+
+      /** Part 17: calculateVipLevel() — pure function of lifetime points
+       *  against the configurable VIP_LEVELS ladder above. */
+      function calculateVipLevel(lifetimePoints) {
+        let current = VIP_LEVELS[0];
+        for (const lvl of VIP_LEVELS) { if (lifetimePoints >= lvl.minPoints) current = lvl; }
+        const idx = VIP_LEVELS.indexOf(current);
+        const next = VIP_LEVELS[idx + 1] || null;
+        const progress = next
+          ? Math.max(0, Math.min(100, Math.round(((lifetimePoints - current.minPoints) / (next.minPoints - current.minPoints)) * 100)))
+          : 100;
+        const pointsToNext = next ? Math.max(0, next.minPoints - lifetimePoints) : 0;
+        return { current, next, progress, pointsToNext };
+      }
+
+      /** Part 17: generateReferralCode() — deterministic hash of the
+       *  phone number, so the same customer always sees the same code
+       *  with zero storage (see migration notes for why). */
+      function generateReferralCode(phone) {
+        const digits = String(phone || "").replace(/\D/g, "") || "0";
+        let hash = 0;
+        for (let i = 0; i < digits.length; i++) hash = (hash * 31 + digits.charCodeAt(i)) >>> 0;
+        const code = hash.toString(36).toUpperCase().padStart(5, "0").slice(-5);
+        return `SWA-${code}`;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §1 — ENTRY / PHONE GATE
+      // ═══════════════════════════════════════════════════════════════
+      document.getElementById("gate-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const phone = document.getElementById("gate-phone").value.trim();
+        if (!phone) { document.getElementById("gate-error").textContent = "Please enter your phone number."; return; }
+        document.getElementById("gate-error").textContent = "";
+        window.location.href = `customer-hub.html?phone=${encodeURIComponent(phone)}`;
+      });
+      document.getElementById("empty-search-again-btn").addEventListener("click", showGate);
+      document.getElementById("switch-account-btn").addEventListener("click", showGate);
+      document.getElementById("error-retry-btn").addEventListener("click", () => {
+        if (currentPhone) loadCustomerHub(currentPhone); else showGate();
+      });
+      function showGate() {
+        hideAllTopSections();
+        show("gate-section");
+        history.replaceState(null, "", "customer-hub.html");
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §1/§17 — loadCustomerHub() — the orchestrator
+      // ═══════════════════════════════════════════════════════════════
+      async function loadCustomerHub(phone) {
+        currentPhone = phone;
+        hideAllTopSections();
+        show("loading-section");
+        document.getElementById("track-link").href = `track.html?phone=${encodeURIComponent(phone)}`;
+        document.getElementById("track-link").classList.remove("hidden");
+
+        try {
+          const { data, error } = await db
+            .rpc("get_orders_by_phone", { p_phone: phone, p_limit: 500 });
+
+          if (error) { console.error("loadCustomerHub error:", error); hideAllTopSections(); show("error-section"); return; }
+          if (!data || data.length === 0) { hideAllTopSections(); show("empty-section"); return; }
+
+          allCustomerOrders = data;
+          hubFilter = "all"; hubSort = "newest"; hubSearch = ""; hubVisibleCount = 10;
+          document.getElementById("oh-search-input").value = "";
+          document.querySelectorAll(".oh-chip").forEach(c => c.classList.toggle("active", c.dataset.filter === "all"));
+          document.getElementById("oh-sort-select").value = "newest";
+
+          await loadReviews(phone);
+
+          renderWelcome(phone, data);
+          loadCustomerStats();
+          renderActiveOrders();
+          renderLoyaltyAndVip();
+          renderRewards();
+          renderReferral(phone);
+          loadFavoriteProducts();
+          loadSavingsSummary();
+          renderOrderHistoryList();
+          renderMyReviews();
+
+          subscribeHubRealtime(phone);
+
+          hideAllTopSections();
+          show("hub-content");
+          history.replaceState(null, "", `customer-hub.html?phone=${encodeURIComponent(phone)}`);
+        } catch (err) {
+          console.error("loadCustomerHub unexpected error:", err);
+          hideAllTopSections();
+          show("error-section");
+        }
+      }
+
+      function renderWelcome(phone, orders) {
+        const name = orders.find(o => o.customer_name)?.customer_name;
+        document.getElementById("welcome-title").textContent = name ? `Welcome back, ${name}!` : "Welcome back!";
+        document.getElementById("welcome-sub").textContent = `${phone} · ${orders.length} order${orders.length === 1 ? "" : "s"} with us`;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §2 — CUSTOMER STATISTICS (Part 17: loadCustomerStats())
+      // ═══════════════════════════════════════════════════════════════
+      function loadCustomerStats() {
+        const delivered = allCustomerOrders.filter(o => normalizeStatus(o.status) === "delivered");
+        const totalOrders = allCustomerOrders.length;
+        const totalSpent = delivered.reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+
+        // "Favorite" = highest total quantity ordered; "Most Ordered" =
+        // appears in the most separate orders — related but distinct
+        // signals, both useful and both free from the data we already have.
+        const qtyByProduct = {}, freqByProduct = {};
+        allCustomerOrders.forEach(o => {
+          const key = (o.product || "—").trim();
+          qtyByProduct[key] = (qtyByProduct[key] || 0) + (Number(o.quantity) || 1);
+          freqByProduct[key] = (freqByProduct[key] || 0) + 1;
+        });
+        const favorite = Object.entries(qtyByProduct).sort((a, b) => b[1] - a[1])[0];
+        const mostOrdered = Object.entries(freqByProduct).sort((a, b) => b[1] - a[1])[0];
+
+        const avgRating = myReviews.length
+          ? (myReviews.reduce((s, r) => s + (r.product_rating || 0) + (r.delivery_rating || 0), 0) / (myReviews.length * 2))
+          : null;
+
+        const { lifetimePoints, currentPoints } = calculatePoints(totalSpent);
+        const { current: vip } = calculateVipLevel(lifetimePoints);
+
+        document.getElementById("stat-total-orders").textContent = totalOrders;
+        document.getElementById("stat-total-spent").textContent = ksh(totalSpent);
+        document.getElementById("stat-total-saved").textContent = ksh(0); // see Savings Summary note
+        document.getElementById("stat-favorite").textContent = favorite ? favorite[0] : "—";
+        document.getElementById("stat-most-ordered").textContent = mostOrdered ? mostOrdered[0] : "—";
+        document.getElementById("stat-avg-rating").textContent = avgRating ? `${avgRating.toFixed(1)} ★` : "—";
+        document.getElementById("stat-points").textContent = currentPoints.toLocaleString();
+        document.getElementById("stat-vip").textContent = `${vip.icon} ${vip.label}`;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // Active orders (quick-glance section above full history)
+      // ═══════════════════════════════════════════════════════════════
+      function renderActiveOrders() {
+        const active = allCustomerOrders.filter(o => ACTIVE_STATUSES.includes(o.status));
+        const card = document.getElementById("active-orders-card");
+        if (active.length === 0) { card.classList.add("hidden"); return; }
+        card.classList.remove("hidden");
+        document.getElementById("active-orders-list").innerHTML = active.map(o => renderOrderCard(o)).join("");
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §7/§8 — LOYALTY & VIP RENDERING
+      // ═══════════════════════════════════════════════════════════════
+      function renderLoyaltyAndVip() {
+        const delivered = allCustomerOrders.filter(o => normalizeStatus(o.status) === "delivered");
+        const totalSpent = delivered.reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+        const { lifetimePoints, currentPoints } = calculatePoints(totalSpent);
+        const { current, next, progress, pointsToNext } = calculateVipLevel(lifetimePoints);
+
+        document.getElementById("vip-icon").textContent = current.icon;
+        document.getElementById("vip-level-name").textContent = current.label;
+        document.getElementById("vip-points-text").textContent = `${currentPoints.toLocaleString()} points`;
+        document.getElementById("vip-progress-fill").style.width = `${progress}%`;
+        document.getElementById("vip-progress-note").textContent = next
+          ? `${pointsToNext.toLocaleString()} points to ${next.label} ${next.icon}`
+          : "You've reached the top tier! 🎉";
+        document.getElementById("vip-benefits-list").innerHTML = current.benefits.map(b => `<li>✅ ${escHtml(b)}</li>`).join("");
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §9 — REWARDS (architecture/placeholders only — Part 9)
+      // ═══════════════════════════════════════════════════════════════
+      function renderRewards() {
+        const delivered = allCustomerOrders.filter(o => normalizeStatus(o.status) === "delivered");
+        const totalSpent = delivered.reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+        const { lifetimePoints } = calculatePoints(totalSpent);
+        const { current } = calculateVipLevel(lifetimePoints);
+        const currentIdx = VIP_LEVELS.indexOf(current);
+
+        const rows = VIP_LEVELS.map((lvl, i) => {
+          const unlocked = i <= currentIdx;
+          return `
+            <div class="reward-row ${unlocked ? "" : "locked"}">
+              <div><div class="rr-title">${lvl.icon} ${escHtml(lvl.label)} Perks</div><div class="rr-sub">${escHtml(lvl.benefits[lvl.benefits.length - 1])}</div></div>
+              <span class="reward-tag ${unlocked ? "" : "soon"}">${unlocked ? "Unlocked" : `${lvl.minPoints.toLocaleString()} pts`}</span>
+            </div>`;
+        }).join("");
+        document.getElementById("rewards-list").innerHTML = rows + `
+          <div class="reward-row locked">
+            <div><div class="rr-title">🎟️ Voucher Codes</div><div class="rr-sub">No vouchers available right now</div></div>
+            <span class="reward-tag soon">Coming soon</span>
+          </div>`;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §10 — REFERRAL (architecture only — Part 10)
+      // ═══════════════════════════════════════════════════════════════
+      function renderReferral(phone) {
+        const code = generateReferralCode(phone);
+        document.getElementById("referral-code").textContent = code;
+        // Referral tracking isn't implemented yet (Part 10) — see the
+        // migration file for the small `referrals` table that would back
+        // these numbers once that's built. Shown as 0 rather than hidden,
+        // so the section reads as "ready, not yet active."
+        document.getElementById("referral-invited").textContent = "0";
+        document.getElementById("referral-successful").textContent = "0";
+        document.getElementById("referral-rewards").textContent = ksh(0);
+
+        document.getElementById("referral-share-btn").onclick = async () => {
+          const url = new URL(`products.html?ref=${encodeURIComponent(code)}`, window.location.href).toString();
+          const shareData = { title: "Swahili Treats", text: `Use my code ${code} on Swahili Treats!`, url };
+          if (navigator.share) {
+            try { await navigator.share(shareData); } catch (e) { /* cancelled — no-op */ }
+          } else {
+            try { await navigator.clipboard.writeText(url); showToast("Referral link copied! 📋"); }
+            catch (e) { showToast("Couldn't copy the link."); }
+          }
+        };
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §11 — FAVORITE PRODUCTS (Part 17: loadFavoriteProducts())
+      // ═══════════════════════════════════════════════════════════════
+      async function loadFavoriteProducts() {
+        const qtyByProduct = {};
+        const templateOrderByProduct = {}; // most recent order_id for each product name, for one-click reorder
+        allCustomerOrders.forEach(o => {
+          const key = (o.product || "—").trim();
+          qtyByProduct[key] = (qtyByProduct[key] || 0) + (Number(o.quantity) || 1);
+          if (!templateOrderByProduct[key]) templateOrderByProduct[key] = o.order_id; // orders are newest-first already
+        });
+        const top = Object.entries(qtyByProduct).sort((a, b) => b[1] - a[1]).slice(0, 4);
+        const card = document.getElementById("favorites-card");
+        if (top.length === 0) { card.classList.add("hidden"); return; }
+        card.classList.remove("hidden");
+
+        // Best-effort product image lookup — matches by name against
+        // active products; if nothing matches, the card just shows no image.
+        const names = top.map(([name]) => name.replace(/\s*\([^)]*\)\s*$/, "").trim());
+        let imageByName = {};
+        try {
+          const { data } = await db.from("products").select("name, image_url").in("name", names);
+          (data || []).forEach(p => { imageByName[p.name] = p.image_url; });
+        } catch (e) { /* image lookup is a nice-to-have — fail silently */ }
+
+        document.getElementById("favorites-grid").innerHTML = top.map(([name, qty]) => {
+          const baseName = name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+          const img = imageByName[baseName];
+          return `
+            <div class="fav-card">
+              ${img ? `<img src="${escHtml(img)}" alt="${escHtml(name)}" loading="lazy" decoding="async" onerror="this.style.display='none'">` : ""}
+              <div class="fc-body">
+                <div class="fc-name">${escHtml(name)}</div>
+                <div class="fc-meta">Ordered ${qty}×</div>
+                <button type="button" class="btn btn-outline btn-sm btn-block" onclick="handleReorderClick('${escHtml(templateOrderByProduct[name])}')">🔁 Reorder</button>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §12 — SAVINGS SUMMARY (Part 17: loadSavingsSummary())
+      // ═══════════════════════════════════════════════════════════════
+      function loadSavingsSummary() {
+        const delivered = allCustomerOrders.filter(o => normalizeStatus(o.status) === "delivered");
+        const totalSpent = delivered.reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+        const avgOrderValue = delivered.length ? totalSpent / delivered.length : 0;
+        const { lifetimePoints } = calculatePoints(totalSpent);
+        const rewardValue = lifetimePoints * POINTS_KES_VALUE;
+
+        // Total Saved / Discounts Used are honestly 0 today: nothing in
+        // the order history has a recorded discount, because the existing
+        // checkout (products.html, intentionally untouched this phase)
+        // doesn't apply discounts yet. Once it does, this is where that
+        // total should be summed in — no other change needed here.
+        document.getElementById("sv-spent").textContent = ksh(totalSpent);
+        document.getElementById("sv-saved").textContent = ksh(0);
+        document.getElementById("sv-discounts").textContent = "0";
+        document.getElementById("sv-reward-value").textContent = ksh(rewardValue);
+        document.getElementById("sv-avg-order").textContent = ksh(avgOrderValue);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §6 — REVIEWS (Part 17: loadReviews() / submitReview())
+      // ═══════════════════════════════════════════════════════════════
+      async function loadReviews(phone) {
+        try {
+          const { data, error } = await db
+            .from("order_reviews")
+            .select("id, order_id, product_id, product_rating, product_review, delivery_rating, delivery_comment, created_at")
+            .eq("phone_number", phone)
+            .order("created_at", { ascending: false });
+          if (error) { console.error("loadReviews error:", error); return; }
+          myReviews = data || [];
+          myReviewedOrderIds = new Set(myReviews.map(r => r.order_id));
+        } catch (e) {
+          console.error("loadReviews unexpected error:", e);
+        }
+      }
+
+      function renderMyReviews() {
+        const avg = myReviews.length
+          ? myReviews.reduce((s, r) => s + (r.product_rating || 0) + (r.delivery_rating || 0), 0) / (myReviews.length * 2)
+          : null;
+        document.getElementById("reviews-avg").textContent = avg ? `${avg.toFixed(1)} ★` : "—";
+        document.getElementById("reviews-total").textContent = String(myReviews.length);
+
+        const listEl = document.getElementById("my-reviews-list");
+        if (myReviews.length === 0) {
+          listEl.innerHTML = `<p style="font-size:0.85rem;color:var(--text-muted);margin:0">You haven't left any reviews yet — reviews unlock once an order is delivered.</p>`;
+          return;
+        }
+        listEl.innerHTML = myReviews.slice(0, 5).map(r => `
+          <div class="savings-row" style="display:block;padding:0.7rem 0">
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-weight:700">#${escHtml(r.order_id)}</span>
+              <span>${"★".repeat(r.product_rating)}${"☆".repeat(5 - r.product_rating)}</span>
+            </div>
+            ${r.product_review ? `<div style="font-size:0.83rem;color:var(--text-muted);margin-top:0.25rem">${escHtml(r.product_review)}</div>` : ""}
+            <div style="font-size:0.72rem;color:#b0b0bc;margin-top:0.3rem">${fmtDate(r.created_at)}</div>
+          </div>`).join("");
+      }
+
+      function openReviewModal(orderId) {
+        const order = allCustomerOrders.find(o => o.order_id === orderId);
+        if (!order) return;
+        if (normalizeStatus(order.status) !== "delivered") { showToast("Only delivered orders can be reviewed."); return; }
+        if (myReviewedOrderIds.has(orderId)) { showToast("You've already reviewed this order."); return; }
+
+        reviewContext = order;
+        productStarValue = 0; deliveryStarValue = 0;
+        updateStarDisplay("product-star-input", 0);
+        updateStarDisplay("delivery-star-input", 0);
+        document.getElementById("review-product-text").value = "";
+        document.getElementById("review-delivery-text").value = "";
+        document.getElementById("review-order-label").textContent = `Order #${order.order_id} — ${order.product || ""}`;
+        document.getElementById("review-modal-overlay").classList.add("open");
+      }
+      function closeReviewModal() {
+        document.getElementById("review-modal-overlay").classList.remove("open");
+        reviewContext = null;
+      }
+      document.getElementById("review-modal-close").addEventListener("click", closeReviewModal);
+      document.getElementById("review-modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "review-modal-overlay") closeReviewModal();
+      });
+
+      function updateStarDisplay(containerId, value) {
+        const container = document.getElementById(containerId);
+        container.dataset.value = value;
+        container.querySelectorAll(".star").forEach(s => {
+          s.classList.toggle("filled", Number(s.dataset.star) <= value);
+        });
+      }
+      document.getElementById("product-star-input").addEventListener("click", (e) => {
+        const star = e.target.closest(".star"); if (!star) return;
+        productStarValue = Number(star.dataset.star);
+        updateStarDisplay("product-star-input", productStarValue);
+      });
+      document.getElementById("delivery-star-input").addEventListener("click", (e) => {
+        const star = e.target.closest(".star"); if (!star) return;
+        deliveryStarValue = Number(star.dataset.star);
+        updateStarDisplay("delivery-star-input", deliveryStarValue);
+      });
+
+      /** Best-effort product_id resolution for a past order — tries the
+       *  order_items table first (the delivery workflow's own source of
+       *  truth for line items), then falls back to a name match against
+       *  active products. Shared with rebuildCart() below. */
+      async function resolveOrderLineItems(order) {
+        try {
+          const { data } = await db.from("order_items").select("product_id, quantity").eq("order_id", order.order_id);
+          if (data && data.length > 0) return data.map(r => ({ product_id: r.product_id, quantity: Number(r.quantity) || 1 }));
+        } catch (e) { /* fall through to name-match below */ }
+
+        const baseName = (order.product || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+        if (!baseName) return [];
+        try {
+          const { data } = await db.from("products").select("id, name").ilike("name", baseName).limit(1);
+          if (data && data.length > 0) return [{ product_id: data[0].id, quantity: Number(order.quantity) || 1 }];
+        } catch (e) { /* no match found */ }
+        return [];
+      }
+
+      async function submitReview() {
+        if (!reviewContext) return;
+        if (!productStarValue || !deliveryStarValue) {
+          showToast("Please choose a star rating for both the product and the delivery.");
+          return;
+        }
+        const btn = document.getElementById("review-submit-btn");
+        btn.disabled = true;
+        btn.textContent = "Submitting…";
+
+        try {
+          const lineItems = await resolveOrderLineItems(reviewContext);
+          const payload = {
+            order_id: reviewContext.order_id,
+            phone_number: currentPhone,
+            product_id: lineItems[0]?.product_id ?? null,
+            product_rating: productStarValue,
+            product_review: document.getElementById("review-product-text").value.trim() || null,
+            delivery_rating: deliveryStarValue,
+            delivery_comment: document.getElementById("review-delivery-text").value.trim() || null,
+            photo_url: null, // Part 6 — architecture only, uploads not implemented yet
+          };
+          const { error } = await db.from("order_reviews").insert(payload);
+          if (error) {
+            console.error("submitReview error:", error);
+            showToast(error.code === "23505" ? "You've already reviewed this order." : "Couldn't submit your review — please try again.");
+            return;
+          }
+          myReviewedOrderIds.add(reviewContext.order_id);
+          showToast("Thank you for your review! 🎉");
+          closeReviewModal();
+          await loadReviews(currentPhone);
+          renderMyReviews();
+          loadCustomerStats();
+          renderOrderHistoryList();
+        } catch (err) {
+          console.error("submitReview unexpected error:", err);
+          showToast("Couldn't submit your review — please try again.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Submit Review";
+        }
+      }
+      document.getElementById("review-submit-btn").addEventListener("click", submitReview);
+
+      // ═══════════════════════════════════════════════════════════════
+      // §5 — ONE-CLICK REORDER (Part 17: rebuildCart())
+      // ═══════════════════════════════════════════════════════════════
+      const CART_STORAGE_KEY = "swahili_treats_cart"; // must match products.html exactly
+
+      /** Checks the `discounts` table for the best currently-active
+       *  discount applicable to a product (product-specific or site-wide),
+       *  and returns today's real price. Never reuses the order's old
+       *  price (Part 5). */
+      async function getDiscountedPrice(product) {
+        const base = Number(product.price) || 0;
+        try {
+          const { data } = await db.from("discounts")
+            .select("discount_type, discount_value, product_id, start_date, end_date")
+            .eq("active", true)
+            .or(`product_id.eq.${product.id},product_id.is.null`);
+          const now = new Date();
+          const applicable = (data || []).filter(d => {
+            const startOk = !d.start_date || new Date(d.start_date) <= now;
+            const endOk = !d.end_date || new Date(d.end_date) >= now;
+            return startOk && endOk;
+          });
+          if (applicable.length === 0) return { price: base, discount: null };
+          const amountOf = (d) => d.discount_type === "percentage" ? base * (Math.min(Number(d.discount_value) || 0, 100) / 100) : (Number(d.discount_value) || 0);
+          const best = applicable.reduce((a, b) => (amountOf(b) > amountOf(a) ? b : a));
+          const discounted = Math.max(0, base - amountOf(best));
+          return { price: Math.round(discounted * 100) / 100, discount: best };
+        } catch (e) {
+          console.error("getDiscountedPrice error:", e);
+          return { price: base, discount: null };
+        }
+      }
+
+      /** Part 17: rebuildCart() — verifies each product still exists, is
+       *  active, and prices it fresh (with any active discount applied),
+       *  then writes a brand-new cart to the same localStorage key
+       *  products.html already reads — so checkout itself needs zero
+       *  changes. Returns which items couldn't be carried over so the
+       *  caller can tell the customer (Part 5). */
+      async function rebuildCart(order) {
+        const lineItems = await resolveOrderLineItems(order);
+        const unavailable = [];
+        const newCart = [];
+        let anyDiscount = false;
+
+        if (lineItems.length === 0) {
+          unavailable.push(order.product || "This item");
+        }
+
+        for (const line of lineItems) {
+          const { data: product, error } = await db.from("products").select("id, name, price, active, image_url").eq("id", line.product_id).maybeSingle();
+          if (error || !product || product.active === false) {
+            unavailable.push(order.product || `Product #${line.product_id}`);
+            continue;
+          }
+          const { price, discount } = await getDiscountedPrice(product);
+          if (discount) anyDiscount = true;
+          newCart.push({
+            cartKey: `${product.id}__`,
+            productId: product.id,
+            productName: product.name,
+            price,
+            imageUrl: product.image_url || "",
+            variants: {},
+            quantity: line.quantity,
+          });
+        }
+
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(newCart));
+        return { cart: newCart, unavailable, anyDiscount };
+      }
+
+      async function handleReorderClick(orderId) {
+        const order = allCustomerOrders.find(o => o.order_id === orderId);
+        if (!order) { showToast("Order not found."); return; }
+
+        reorderContext = order;
+        const body = document.getElementById("reorder-modal-body");
+        body.innerHTML = `<p style="text-align:center;color:var(--text-muted);font-size:0.88rem">Checking today's prices…</p>`;
+        document.getElementById("reorder-modal-overlay").classList.add("open");
+
+        const { cart, unavailable, anyDiscount } = await rebuildCart(order);
+
+        if (cart.length === 0) {
+          body.innerHTML = `
+            <p style="text-align:center;font-size:0.9rem">😕 <strong>${escHtml(order.product || "This item")}</strong> is no longer available for reorder.</p>
+            <button type="button" class="btn btn-primary btn-block" onclick="closeReorderModal()">Close</button>`;
+          return;
+        }
+
+        const itemsHtml = cart.map(i => `
+          <div class="savings-row"><span class="label">${escHtml(i.productName)} × ${i.quantity}</span><span class="value">${ksh(i.price * i.quantity)}</span></div>
+        `).join("");
+        const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+        body.innerHTML = `
+          ${unavailable.length ? `<p style="font-size:0.85rem;color:var(--red)">Some items from this order are no longer available and were left out:</p>
+            <ul class="unavailable-list">${unavailable.map(u => `<li>${escHtml(u)}</li>`).join("")}</ul>` : ""}
+          ${anyDiscount ? `<p style="font-size:0.85rem;color:var(--green)">🎉 An active discount has been applied to today's prices!</p>` : ""}
+          <div style="margin:0.8rem 0">${itemsHtml}</div>
+          <div class="savings-row" style="font-weight:700"><span class="label">New Cart Total</span><span class="value">${ksh(total)}</span></div>
+          <button type="button" class="btn btn-primary btn-block" style="margin-top:1rem" onclick="window.location.href='products.html'">🛍️ Go to Cart &amp; Checkout</button>
+        `;
+      }
+      function closeReorderModal() {
+        document.getElementById("reorder-modal-overlay").classList.remove("open");
+        reorderContext = null;
+      }
+      document.getElementById("reorder-modal-close").addEventListener("click", closeReorderModal);
+      document.getElementById("reorder-modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "reorder-modal-overlay") closeReorderModal();
+      });
+
+      // ═══════════════════════════════════════════════════════════════
+      // §3 — ORDER HISTORY: search / filter / sort (Part 17)
+      // ═══════════════════════════════════════════════════════════════
+      function searchOrders(query) { hubSearch = query.trim().toLowerCase(); hubVisibleCount = 10; renderOrderHistoryList(); }
+      function filterOrders(status) { hubFilter = status; hubVisibleCount = 10; renderOrderHistoryList(); }
+      function sortOrders(mode) { hubSort = mode; renderOrderHistoryList(); }
+
+      document.getElementById("oh-search-input").addEventListener("input", (e) => searchOrders(e.target.value));
+      document.getElementById("oh-filter-chips").addEventListener("click", (e) => {
+        const chip = e.target.closest(".oh-chip"); if (!chip) return;
+        document.querySelectorAll(".oh-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        filterOrders(chip.dataset.filter);
+      });
+      document.getElementById("oh-sort-select").addEventListener("change", (e) => sortOrders(e.target.value));
+      document.getElementById("oh-load-more-btn").addEventListener("click", () => {
+        hubVisibleCount += 10;
+        renderOrderHistoryList();
+      });
+
+      function getFilteredSortedOrders() {
+        let rows = allCustomerOrders.slice();
+        if (hubSearch) rows = rows.filter(o => o.order_id.toLowerCase().includes(hubSearch));
+        if (hubFilter !== "all") rows = rows.filter(o => normalizeStatus(o.status) === hubFilter);
+        switch (hubSort) {
+          case "oldest":  rows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); break;
+          case "highest": rows.sort((a, b) => (Number(b.total_price) || 0) - (Number(a.total_price) || 0)); break;
+          case "lowest":  rows.sort((a, b) => (Number(a.total_price) || 0) - (Number(b.total_price) || 0)); break;
+          default:        rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // newest
+        }
+        return rows;
+      }
+
+      function renderOrderCard(o) {
+        const normalized = normalizeStatus(o.status);
+        const sd = STATUS_BADGE[normalized] || STATUS_BADGE.pending;
+        const isActive = ACTIVE_STATUSES.includes(o.status);
+        const isDelivered = normalized === "delivered";
+        const alreadyReviewed = myReviewedOrderIds.has(o.order_id);
+
+        return `
+          <div class="order-card">
+            <div class="order-card-top">
+              <div>
+                <div class="order-card-id">#${escHtml(o.order_id)}</div>
+                <div class="order-card-meta">${fmtDate(o.created_at)} · ${escHtml(o.product || "")} × ${o.quantity ?? 1}</div>
+              </div>
+              <div>
+                <div class="order-card-total">${ksh(o.total_price)}</div>
+                <span class="status-badge ${sd.cls}">${escHtml(sd.label)}</span>
+              </div>
+            </div>
+            <div class="order-card-actions">
+              <a class="btn btn-ghost btn-sm" href="track.html?order=${encodeURIComponent(o.order_id)}">📄 View Details</a>
+              ${isActive ? `<a class="btn btn-outline btn-sm" href="track.html?order=${encodeURIComponent(o.order_id)}">🚚 Track Live</a>` : ""}
+              <button type="button" class="btn btn-ghost btn-sm" onclick="handleReorderClick('${escHtml(o.order_id)}')">🔁 Reorder</button>
+              ${isDelivered && !alreadyReviewed ? `<button type="button" class="btn btn-primary btn-sm" onclick="openReviewModal('${escHtml(o.order_id)}')">⭐ Leave Review</button>` : ""}
+              ${isDelivered && alreadyReviewed ? `<span class="btn btn-ghost btn-sm" style="opacity:0.6;cursor:default">✅ Reviewed</span>` : ""}
+            </div>
+          </div>`;
+      }
+
+      function renderOrderHistoryList() {
+        const rows = getFilteredSortedOrders();
+        const listEl = document.getElementById("order-history-list");
+        const emptyEl = document.getElementById("oh-empty-state");
+        const moreBtn = document.getElementById("oh-load-more-btn");
+
+        if (rows.length === 0) {
+          listEl.innerHTML = "";
+          emptyEl.classList.remove("hidden");
+          moreBtn.classList.add("hidden");
+          return;
+        }
+        emptyEl.classList.add("hidden");
+
+        const visible = rows.slice(0, hubVisibleCount);
+        listEl.innerHTML = visible.map(renderOrderCard).join("");
+        moreBtn.classList.toggle("hidden", visible.length >= rows.length);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §13 — REALTIME
+      // Its own channel — separate from track.html's/notifications' — so
+      // this page never touches those, and vice versa.
+      // ═══════════════════════════════════════════════════════════════
+      function subscribeHubRealtime(phone) {
+        if (hubRealtimeCh) { db.removeChannel(hubRealtimeCh); hubRealtimeCh = null; }
+        try {
+          hubRealtimeCh = db
+            .channel(`customer-hub-${phone}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `phone=eq.${phone}` }, () => {
+              loadCustomerHub(phone); // small dataset per customer — a full, cheap reload keeps every section in sync
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: "order_reviews", filter: `phone_number=eq.${phone}` }, async () => {
+              await loadReviews(phone);
+              renderMyReviews();
+              loadCustomerStats();
+            })
+            .subscribe((status) => {
+              if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                console.warn("Customer Hub realtime channel issue:", status); // non-fatal — Supabase retries automatically
+              }
+            });
+        } catch (e) {
+          console.error("subscribeHubRealtime error:", e);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // INIT
+      // ═══════════════════════════════════════════════════════════════
+      (function init() {
+        const params = new URLSearchParams(window.location.search);
+        const phone = params.get("phone");
+        if (phone) loadCustomerHub(phone.trim());
+        else showGate();
+      })();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/track-sw.js", { scope: "/" }).catch(() => {
+          /* Non-fatal — reuses the same lightweight shell registered by track.html. */
+        });
+      }
+    </script>
+  </body>
+</html>

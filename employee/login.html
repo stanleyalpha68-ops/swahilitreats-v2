@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Swahili Treats – Employee Login</title>
+  <meta name="theme-color" content="#ffb703" />
+  <meta name="description" content="Sign in to the Swahili Treats employee portal." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ST Team" />
+  <link rel="manifest" href="/employee-manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Shared design tokens (matches employee/index.html) ─────────────── */
+    :root {
+      /* PHASE 7.1 — Swahili Treats Design System (same tokens as admin.html/employee/index.html) */
+      --primary:      #0e7c86;
+      --primary-dark: #0a5c63;
+      --secondary:    #ff9f1c;
+      --accent:       #e3b778;
+      --accent-dark:  #c99a54;
+      --success:      #4c9a2a;
+      --success-bg:   #e9f5e2;
+      --warn:         #ff6f59;
+      --warn-bg:      #ffece8;
+      --danger:       #b91c1c;
+      --danger-bg:    #fbe6e6;
+      --text:         #2b2620;
+      --text-muted:   #6b6255;
+      --text-light:   #a89e8c;
+      --surface:      #ffffff;
+      --surface-2:    #fdf8f0;
+      --bg:           #fffbf5;
+      --border:       #efe4d3;
+      --radius-sm:    0.75rem;
+      --radius:       1.25rem;
+      --radius-lg:    1.75rem;
+      --shadow-sm:    0 2px 8px rgba(34,34,59,0.07);
+      --shadow:       0 4px 20px rgba(34,34,59,0.10);
+      --error-bg:     #fff0f3;
+      --error-border: #ff006e;
+      --error-text:   #c0004b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Brand panel (desktop only — hidden on phones) ───────────────────
+       On large screens this fills the left half with a colour wash and
+       quick context about the app, mirroring the dashboard's palette
+       so the login screen no longer feels like a separate product. */
+    .brand-panel {
+      display: none;
+      flex: 1.1;
+      background: linear-gradient(150deg, var(--primary) 0%, var(--secondary) 55%, var(--accent) 130%);
+      position: relative;
+      overflow: hidden;
+      padding: 3rem;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .brand-panel .bp-deco {
+      position: absolute;
+      font-size: 10rem;
+      opacity: 0.12;
+      pointer-events: none;
+      user-select: none;
+    }
+    .brand-panel .bp-deco-1 { top: -3rem; right: -2rem; transform: rotate(12deg); }
+    .brand-panel .bp-deco-2 { bottom: -3rem; left: -2rem; transform: rotate(-10deg); }
+    .bp-logo {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.6rem;
+      color: white;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+    }
+    .bp-headline {
+      font-family: 'Fredoka', cursive;
+      font-size: 2.4rem;
+      line-height: 1.2;
+      color: white;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .bp-sub {
+      font-size: 0.98rem;
+      color: rgba(255,255,255,0.92);
+      max-width: 380px;
+      line-height: 1.6;
+      margin-top: 0.85rem;
+      position: relative;
+      z-index: 1;
+    }
+    .bp-features {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      position: relative;
+      z-index: 1;
+    }
+    .bp-feature {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: white;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+    .bp-feature .bf-icon {
+      width: 34px; height: 34px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Form panel ───────────────────────────────────────────────────── */
+    .form-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1.5rem env(safe-area-inset-bottom, 1.5rem);
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* Background decorations — phones only, removed once brand panel shows */
+    .bg-deco {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.07;
+      font-size: 8rem;
+      user-select: none;
+    }
+    .bg-deco-1 { top: -2rem; left: -2rem; transform: rotate(-20deg); }
+    .bg-deco-2 { bottom: -2rem; right: -2rem; transform: rotate(15deg); }
+
+    .float-em {
+      position: fixed;
+      font-size: 2rem;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+      animation: floatUp 6s ease-in-out infinite;
+    }
+    .float-em:nth-child(3) { left: 8vw;  top: 15vh; animation-delay: 0s; }
+    .float-em:nth-child(4) { right: 10vw; top: 20vh; animation-delay: 2s; }
+    .float-em:nth-child(5) { left: 18vw; bottom: 18vh; animation-delay: 1.5s; }
+    .float-em:nth-child(6) { right: 15vw; bottom: 12vh; animation-delay: 3s; }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-18px) rotate(5deg); }
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 2.5rem 2rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      z-index: 1;
+      animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Logo / header (mobile + tablet, hidden once brand panel takes over) */
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-family: 'Fredoka', cursive;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .logo-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 2rem;
+      color: var(--text);
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+    .logo-title span { color: var(--secondary); }
+    .logo-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 0.25rem;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Compact heading shown only on the desktop split-screen, since the
+       brand panel already carries the full logo treatment. */
+    .form-heading { display: none; margin-bottom: 1.5rem; }
+    .form-heading .fh-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.6rem;
+      color: var(--text);
+    }
+    .form-heading .fh-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    /* Error box */
+    .error-box {
+      display: none;
+      align-items: flex-start;
+      gap: 0.5rem;
+      background: var(--error-bg);
+      border: 1.5px solid var(--error-border);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 0.9rem;
+      margin-bottom: 1rem;
+      font-size: 0.88rem;
+      color: var(--error-text);
+      font-weight: 600;
+    }
+    .error-box.visible {
+      display: flex;
+      animation: shake 0.35s both;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-5px); }
+      40%,80% { transform: translateX(5px); }
+    }
+
+    /* Fields */
+    .field { margin-bottom: 1rem; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.3px;
+    }
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--surface-2);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(33,158,188,0.12);
+      background: white;
+    }
+
+    /* Password toggle */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 3rem; }
+    .pw-toggle {
+      position: absolute;
+      right: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0.2rem;
+      line-height: 1;
+      color: #bbb;
+    }
+    .pw-toggle:hover { color: var(--accent); }
+
+    /* Submit button */
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 0.9rem 1rem;
+      border: none;
+      border-radius: 1.5rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 0.5rem;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 16px rgba(251,133,0,0.3);
+    }
+    .submit-btn:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-light);
+      margin-top: 1.25rem;
+    }
+
+    /* ── Small phones ─────────────────────────────────────────────────── */
+    @media (max-width: 400px) {
+      .card { padding: 2rem 1.25rem 1.5rem; border-radius: 1.5rem; }
+      .logo-title { font-size: 1.7rem; }
+    }
+
+    /* ── Tablet and up: a little more breathing room, card not edge-to-edge ── */
+    @media (min-width: 640px) {
+      .form-panel { padding: 2rem; }
+      .card { max-width: 420px; padding: 3rem 2.5rem 2.5rem; }
+    }
+
+    /* ── Desktop: split-screen with brand panel ──────────────────────────
+       Wide viewports get a two-pane layout like a typical SaaS login —
+       branding/context on the left, the form anchored right. The card's
+       own logo header is swapped for a compact heading since the brand
+       panel already shows the full logo treatment. */
+    @media (min-width: 980px) {
+      .brand-panel { display: flex; }
+      .bg-deco, .float-em { display: none; }
+      .form-panel { flex: 1; max-width: 560px; }
+      .logo-wrap { display: none; }
+      .form-heading { display: block; }
+      .card {
+        box-shadow: none;
+        padding: 0;
+        max-width: 380px;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Brand panel (desktop only) ─────────────────────────────────────── -->
+  <aside class="brand-panel">
+    <span class="bp-deco bp-deco-1">🍬</span>
+    <span class="bp-deco bp-deco-2">🥥</span>
+
+    <div class="bp-logo">🍬 Swahili Treats</div>
+
+    <div>
+      <div class="bp-headline">Run your shift from one place.</div>
+      <p class="bp-sub">Claim orders, track deliveries and keep your stock up to date — all from the team portal.</p>
+    </div>
+
+    <div class="bp-features">
+      <div class="bp-feature"><span class="bf-icon">📋</span> Pick up available orders instantly</div>
+      <div class="bp-feature"><span class="bf-icon">🛵</span> Track your active deliveries</div>
+      <div class="bp-feature"><span class="bf-icon">🏷️</span> Manage your inventory on the go</div>
+    </div>
+  </aside>
+
+  <!-- ── Form panel ───────────────────────────────────────────────────── -->
+  <main class="form-panel">
+    <div class="bg-deco bg-deco-1">🍬</div>
+    <div class="bg-deco bg-deco-2">🥥</div>
+    <div class="float-em">🥭</div>
+    <div class="float-em">🍭</div>
+    <div class="float-em">🌺</div>
+    <div class="float-em">✨</div>
+
+    <div class="card">
+      <div class="logo-wrap">
+        <div class="logo-badge">👥 Team Portal</div>
+        <div class="logo-title">🍬 Swahili <span>Treats</span></div>
+        <div class="logo-sub">Sign in to your employee account</div>
+      </div>
+
+      <div class="form-heading">
+        <div class="fh-title">Welcome back 👋</div>
+        <div class="fh-sub">Sign in to your employee account</div>
+      </div>
+
+      <div class="error-box" id="error-box" role="alert">
+        <span>⚠️</span>
+        <span id="error-msg">Incorrect email or password.</span>
+      </div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" autocomplete="email" placeholder="you@swahilitreats.com" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" required />
+          <button class="pw-toggle" type="button" id="pw-toggle" aria-label="Show/hide password">👁️</button>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="login-btn" type="button">Sign In</button>
+
+      <div class="footer-note">Restricted to Swahili Treats team members only.</div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth-shared.js"></script>
+  <script>
+    // Phase 7.5.5 QA fix — this page had never actually been switched over
+    // to the shared auth-shared.js architecture from Phase 7.5.2 (it kept
+    // its own hand-rolled copy of the Supabase config + role→redirect
+    // rule, the exact drift auth-shared.js's own header comment warns
+    // about). That hand-rolled copy is why the "employee sometimes lands
+    // on the Admin dashboard" bug was only ever reproducible here, not on
+    // login.html. Root cause: its own "already logged in?" check ran
+    // un-awaited at page load and could still be resolving a *stale*
+    // cached session (e.g. an Admin who closed their tab instead of
+    // signing out) at the exact moment this page's own doLogin() finished
+    // and redirected — and since window.location.replace() doesn't stop
+    // the rest of the script from running, whichever redirect resolved
+    // LAST silently won, occasionally overwriting a correct Employee
+    // redirect with a stale Admin one. Swapping in the shared, guarded
+    // implementation below fixes it here the same way it's already fixed
+    // on login.html, without changing the redirect rule itself.
+    const sb = supabase.createClient(STAFF_SUPABASE_URL, STAFF_SUPABASE_ANON);
+    function redirectByRole(role) { window.location.replace(staffRedirectPath(role, "../")); }
+
+    // Flips true the moment this person starts signing in themselves, so
+    // the "already logged in" auto-redirect below can't race a stale
+    // session's redirect past a fresh manual login.
+    let staffLoginInProgress = false;
+
+    // ── If already logged in, redirect immediately ─────────────────────────
+    staffCheckSessionAndRedirect(sb, "../", () => staffLoginInProgress);
+
+    // ── DOM refs ───────────────────────────────────────────────────────────
+    const emailEl    = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const loginBtn   = document.getElementById("login-btn");
+    const errorBox   = document.getElementById("error-box");
+    const errorMsg   = document.getElementById("error-msg");
+    const pwToggle   = document.getElementById("pw-toggle");
+
+    // ── Show/hide password ─────────────────────────────────────────────────
+    pwToggle.addEventListener("click", () => {
+      const hidden = passwordEl.type === "password";
+      passwordEl.type = hidden ? "text" : "password";
+      pwToggle.textContent = hidden ? "🙈" : "👁️";
+    });
+
+    // ── Error helper ───────────────────────────────────────────────────────
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorBox.classList.remove("visible");
+      void errorBox.offsetWidth; // trigger reflow for re-animation
+      errorBox.classList.add("visible");
+    }
+
+    // ── Login ──────────────────────────────────────────────────────────────
+    async function doLogin() {
+      const email    = emailEl.value.trim();
+      const password = passwordEl.value;
+
+      if (!email)    { showError("Please enter your email address."); emailEl.focus(); return; }
+      if (!password) { showError("Please enter your password."); passwordEl.focus(); return; }
+
+      // Phase 7.5.5 QA fix — a real sign-in attempt is underway now, so
+      // the page-load auto-redirect check must defer to it.
+      staffLoginInProgress = true;
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span>Signing in…';
+      errorBox.classList.remove("visible");
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign In";
+
+        // PHASE 6.10 Part 6 — same anon-insert pattern as login.html.
+        sb.from("security_events").insert({
+          event_type: "failed_login", severity: "low", actor_identifier: email, portal: "employee",
+          details: { reason: error.message },
+        }).then(() => {}, () => {});
+
+        const m = (error.message || "").toLowerCase();
+        if (m.includes("invalid") || m.includes("credentials") || m.includes("not confirmed")) {
+          showError("Incorrect email or password. Please try again.");
+        } else if (m.includes("too many")) {
+          showError("Too many attempts. Wait a moment and try again.");
+        } else if (m.includes("network") || m.includes("fetch")) {
+          showError("Network error — check your connection.");
+        } else {
+          showError(error.message || "Login failed. Please try again.");
+        }
+        return;
+      }
+
+      // Fetch role and redirect
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          await sb.from("employees")
+            .update({ last_seen: new Date().toISOString() })
+            .eq("user_id", session.user.id);
+
+          const { data: emp } = await sb
+            .from("employees")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .single();
+          redirectByRole(emp?.role ?? "employee");
+          return;
+        }
+      } catch (_) { /* non-fatal, fall through */ }
+
+      window.location.replace("/employee/index.html");
+    }
+
+    loginBtn.addEventListener("click", doLogin);
+    [emailEl, passwordEl].forEach(el =>
+      el.addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); })
+    );
+  </script>
+</body>
+</html>

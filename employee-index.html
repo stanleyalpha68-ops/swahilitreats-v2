@@ -1,0 +1,4732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Swahili Treats – Employee Portal</title>
+  <meta name="theme-color" content="#ffb703" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ST Team" />
+  <link rel="manifest" href="/employee-manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="msapplication-TileColor" content="#ffb703" />
+  <meta name="color-scheme" content="light" />
+  <!-- PHASE 6.7 — EMPLOYEE_APP_VERSION is compared against a version the
+       service worker/page can bump on each deploy to detect updates
+       (Part 6). Bump this string whenever employee/index.html ships a
+       real change; the update-available banner keys off it. -->
+  <meta name="st-app-version" content="6.7.0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ────────────────────────────────────────────────── */
+    :root {
+      /* PHASE 7.1 — Swahili Treats Design System. Same variable names
+         this file already used everywhere; only the palette changed —
+         see admin.html's :root for the full token rationale (this is
+         the same system, applied here so the Employee PWA shares one
+         identity with the rest of the product family). */
+      --primary:      #0e7c86;   /* Ocean Teal */
+      --primary-dark: #0a5c63;
+      --secondary:    #ff9f1c;   /* Mango Orange */
+      --accent:       #e3b778;   /* Warm Sand */
+      --accent-dark:  #c99a54;
+      --success:      #4c9a2a;   /* Palm Green */
+      --success-bg:   #e9f5e2;
+      --warn:         #ff6f59;   /* Coastal Coral */
+      --warn-bg:      #ffece8;
+      --danger:       #b91c1c;   /* Deep Red */
+      --danger-bg:    #fbe6e6;
+      --text:         #2b2620;   /* Dark Charcoal */
+      --text-muted:   #6b6255;
+      --text-light:   #a89e8c;
+      --surface:      #ffffff;
+      --surface-2:    #fdf8f0;
+      --bg:           #fffbf5;
+      --border:       #efe4d3;
+      --radius-sm:    0.75rem;
+      --radius:       1.25rem;
+      --radius-lg:    1.75rem;
+      --shadow-sm:    0 2px 8px rgba(43,38,32,0.07);
+      --shadow:       0 4px 20px rgba(43,38,32,0.10);
+      --nav-h:        64px;
+      --header-h:     60px;
+      --safe-bottom:  env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── App shell ─────────────────────────────────────────────────────
+       On phones this is just a normal block flow (header / content / bottom
+       nav stacked). From 900px up it becomes a row so a sidebar can sit
+       to the left of the header + content column. */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    /* ── App row (phones: simple stack; desktop: sidebar + main column) ── */
+    .app-row {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .app-main-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Side navigation — hidden by default (mobile), shown on tablet/desktop ── */
+    .side-nav { display: none; }
+
+    /* ── Top header ───────────────────────────────────────────────────── */
+    .top-header {
+      height: var(--header-h);
+      background: var(--surface);
+      border-bottom: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.1rem;
+      flex-shrink: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-brand {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.35rem;
+      color: var(--secondary);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .header-brand .badge {
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 0.15rem 0.5rem;
+      border-radius: 2rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-left: 0.35rem;
+      align-self: center;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .notif-btn {
+      position: relative;
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .notif-btn:active { background: var(--border); }
+    .notif-dot {
+      position: absolute;
+      top: 2px; right: 2px;
+      width: 9px; height: 9px;
+      background: var(--danger);
+      border-radius: 50%;
+      border: 1.5px solid white;
+      display: none;
+    }
+    .notif-dot.active { display: block; }
+    .avatar-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-family: 'Fredoka', cursive;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0;
+      transition: opacity 0.15s;
+    }
+    .avatar-btn:active { opacity: 0.8; }
+
+    /* ── Main scroll area ─────────────────────────────────────────────── */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.5rem);
+    }
+
+    /* ── Pages ────────────────────────────────────────────────────────── */
+    .page {
+      display: none;
+      padding: 1rem;
+      animation: pageIn 0.25s ease both;
+    }
+    .page.active { display: block; }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Page title ───────────────────────────────────────────────────── */
+    .page-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.5rem;
+      color: var(--text);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .page-title small {
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-left: 0.3rem;
+      align-self: flex-end;
+      padding-bottom: 3px;
+    }
+
+    /* ── Summary cards ────────────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .summary-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1rem 0.75rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.35rem;
+      transition: transform 0.15s;
+      border: 1.5px solid transparent;
+    }
+    .summary-card:active { transform: scale(0.96); }
+    .summary-card.c-available { border-color: rgba(33,158,188,0.25); }
+    .summary-card.c-active    { border-color: rgba(251,133,0,0.25); }
+    .summary-card.c-inventory { border-color: rgba(22,163,74,0.25); }
+
+    .sc-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+    .sc-value {
+      font-family: 'Fredoka', cursive;
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .c-available .sc-value { color: var(--accent); }
+    .c-active    .sc-value { color: var(--secondary); }
+    .c-inventory .sc-value { color: var(--success); }
+    .sc-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+    }
+
+    /* ── Section header ───────────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+    .section-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+    .see-all-btn {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.2rem 0;
+    }
+
+    /* ── Generic list card ────────────────────────────────────────────── */
+    .list-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:active { background: var(--surface-2); }
+
+    .li-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .li-icon.orange { background: #fff3e0; }
+    .li-icon.blue   { background: #e0f7fa; }
+    .li-icon.green  { background: #dcfce7; }
+    .li-icon.pink   { background: #fce7f3; }
+    .li-icon.yellow { background: #fef9c3; }
+
+    .li-body { flex: 1; min-width: 0; }
+    .li-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .li-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .li-end { text-align: right; flex-shrink: 0; }
+
+    /* ── Status badges ────────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 2rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-pending  { background: var(--warn-bg);    color: var(--warn); }
+    .badge-active   { background: #dbeafe;            color: #1d4ed8; }
+    .badge-done     { background: var(--success-bg);  color: var(--success); }
+    .badge-low      { background: var(--danger-bg);   color: var(--danger); }
+
+    /* ── Info card ────────────────────────────────────────────────────── */
+    .info-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 1.1rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .info-card .ic-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      font-family: 'Fredoka', cursive;
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-row .ir-label {
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      min-width: 80px;
+      padding-top: 1px;
+    }
+    .info-row .ir-val {
+      color: var(--text);
+      font-weight: 600;
+      flex: 1;
+    }
+
+    /* ── Placeholder / empty ──────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state .em-icon { font-size: 3rem; margin-bottom: 0.5rem; line-height: 1; }
+    .empty-state .em-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+    .empty-state .em-sub { font-size: 0.82rem; }
+
+    /* ── Placeholder banner ───────────────────────────────────────────── */
+    .placeholder-banner {
+      background: linear-gradient(135deg, #fffbea, #fff3e0);
+      border: 1.5px dashed var(--primary);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .placeholder-banner .ph-icon { font-size: 1.5rem; margin-bottom: 0.35rem; }
+    .placeholder-banner strong { display: block; color: var(--secondary); font-size: 0.9rem; margin-bottom: 0.2rem; }
+
+    /* ── Notification items ───────────────────────────────────────────── */
+    .notif-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+      transition: background 0.1s;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item.unread { background: #fffbea; }
+    .notif-item:active { background: var(--surface-2); }
+    .ni-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+    .ni-dot.read { background: var(--border); }
+    .ni-body { flex: 1; min-width: 0; }
+    .ni-title { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+    .ni-msg { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem; line-height: 1.4; }
+    .ni-time { font-size: 0.72rem; color: var(--text-light); margin-top: 0.25rem; }
+
+    /* ── Profile page ─────────────────────────────────────────────────── */
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-family: 'Fredoka', cursive;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.75rem;
+      box-shadow: 0 4px 16px rgba(251,133,0,0.3);
+    }
+    .profile-name {
+      text-align: center;
+      font-family: 'Fredoka', cursive;
+      font-size: 1.5rem;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: 0.15rem;
+    }
+    .profile-role {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────────── */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 0.65rem;
+      letter-spacing: 0.2px;
+    }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: white;
+      box-shadow: 0 3px 12px rgba(33,158,188,0.3);
+    }
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-danger {
+      background: var(--surface);
+      color: var(--danger);
+      border: 1.5px solid rgba(220,38,38,0.2);
+    }
+
+    /* ── Change password modal ────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(34,34,59,0.4);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: var(--safe-bottom);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 1.5rem 1.25rem calc(1.5rem + var(--safe-bottom));
+      width: 100%;
+      max-width: 480px;
+      animation: sheetUp 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 1rem;
+    }
+    .modal-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .modal-field { margin-bottom: 0.85rem; }
+    .modal-field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      color: var(--text-muted);
+    }
+    .modal-field input {
+      width: 100%;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.95rem;
+      padding: 0.7rem 0.9rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      background: var(--surface-2);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    .modal-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(227, 183, 120, 0.35); }
+    .modal-error { font-size: 0.82rem; color: var(--danger); margin-bottom: 0.6rem; min-height: 1rem; }
+    .modal-actions { display: flex; gap: 0.6rem; }
+    .modal-actions .btn { margin-bottom: 0; flex: 1; }
+
+    /* ── Bottom navigation ────────────────────────────────────────────── */
+    .bottom-nav {
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--surface);
+      border-top: 1.5px solid var(--border);
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(34,34,59,0.07);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      border: none;
+      background: none;
+      padding: 0;
+      position: relative;
+      transition: opacity 0.15s;
+    }
+    .nav-item:active { opacity: 0.7; }
+    .nav-icon {
+      font-size: 1.35rem;
+      line-height: 1;
+      transition: transform 0.2s;
+    }
+    .nav-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+    .nav-item.active .nav-icon { transform: scale(1.15); }
+    .nav-item.active .nav-label { color: var(--secondary); }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 20%; right: 20%;
+      height: 2.5px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 0 0 3px 3px;
+    }
+    .nav-badge {
+      position: absolute;
+      top: 4px;
+      right: calc(50% - 16px);
+      min-width: 16px;
+      height: 16px;
+      background: var(--danger);
+      color: white;
+      font-size: 0.6rem;
+      font-weight: 700;
+      border-radius: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+      border: 1.5px solid var(--surface);
+    }
+
+    /* ── Loading skeleton ─────────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, #f0ede8 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+    .skeleton-text { height: 0.9rem; margin-bottom: 0.4rem; }
+    .skeleton-text.wide { width: 70%; }
+    .skeleton-text.narrow { width: 40%; }
+
+    /* ── Toast ────────────────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bottom) + 0.75rem);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text);
+      color: white;
+      padding: 0.65rem 1.2rem;
+      border-radius: 2rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Spinner ──────────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.3em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Side navigation styling (tablet/desktop) ────────────────────────── */
+    .side-nav-brand {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.25rem;
+      letter-spacing: 0.5px;
+      padding: 1.4rem 1.25rem 1.1rem;
+    }
+    .side-nav-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0 0.75rem;
+      flex: 1;
+    }
+    .side-nav-footer {
+      padding: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .side-nav-user {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      width: 100%;
+      padding: 0.55rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: none;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .side-nav-user:hover, .side-nav-user.active { background: var(--surface-2); }
+    .snav-user-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-family: 'Fredoka', cursive;
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .snav-user-text { display: flex; flex-direction: column; min-width: 0; }
+    .snav-user-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .snav-user-role { font-size: 0.72rem; color: var(--text-muted); }
+    .side-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.7rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: none;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s, color 0.15s;
+      text-align: left;
+    }
+    .side-nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .side-nav-item.active {
+      background: linear-gradient(135deg, rgba(255,183,3,0.14), rgba(251,133,0,0.10));
+      color: var(--secondary);
+    }
+    .snav-icon { font-size: 1.15rem; line-height: 1; flex-shrink: 0; }
+    .snav-badge {
+      margin-left: auto;
+      min-width: 18px;
+      height: 18px;
+      background: var(--danger);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      border-radius: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ── Tablet: a bit more breathing room, bottom nav still drives navigation ── */
+    @media (min-width: 640px) and (max-width: 899px) {
+      .main-content { max-width: 640px; margin: 0 auto; width: 100%; }
+      .bottom-nav { max-width: 640px; margin: 0 auto; }
+      .cards-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    }
+
+    /* ── Desktop / large tablet: real sidebar layout replaces bottom nav ──
+       Mirrors the "computer or phone, not a stretched phone" brief:
+       above 900px the whole shell switches from a single mobile column
+       to header + sidebar + wider multi-column content. */
+    @media (min-width: 900px) {
+      html, body { overflow: auto; }
+      .app-shell { height: auto; min-height: 100vh; }
+      .app-row { min-height: 100vh; }
+
+      .side-nav {
+        display: flex;
+        flex-direction: column;
+        width: 230px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-right: 1.5px solid var(--border);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .bottom-nav { display: none; }
+
+      .top-header { display: none; } /* sidebar carries the brand on desktop */
+
+      .main-content {
+        max-width: none;
+        margin: 0;
+        overflow-y: visible;
+        padding-bottom: 2rem;
+      }
+      .page { padding: 2rem 2.5rem; max-width: 1100px; }
+
+      .cards-grid { grid-template-columns: repeat(3, 1fr); gap: 1.1rem; max-width: 640px; }
+      .summary-card { padding: 1.3rem 1rem; }
+      .sc-value { font-size: 2.3rem; }
+
+      /* Two-column layout for Home: quick actions + alerts side by side */
+      #page-home {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto auto;
+        gap: 0 2rem;
+      }
+      #page-home .page-title,
+      #page-home .cards-grid { grid-column: 1 / -1; }
+
+      .toast {
+        bottom: 1.5rem;
+        left: auto;
+        right: 1.5rem;
+        transform: translateY(20px);
+      }
+      .toast.show { transform: translateY(0); }
+
+      .modal-overlay { align-items: center; }
+      .modal-sheet {
+        border-radius: var(--radius-lg);
+        max-width: 420px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (min-width: 1180px) {
+      .page { padding: 2.5rem 3rem; }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       ORDERS PAGE — Phase 3 Step 2
+    ══════════════════════════════════════════════════════════════════ */
+
+    /* ── Page header row ─────────────────────────────────────────────── */
+    .orders-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .orders-live-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--success);
+      background: var(--success-bg);
+      padding: 0.25rem 0.65rem;
+      border-radius: 2rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: livePulse 1.6s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ── Count pills ─────────────────────────────────────────────────── */
+    .orders-count-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--accent);
+      color: white;
+      padding: 0.18rem 0.55rem;
+      border-radius: 2rem;
+      letter-spacing: 0.3px;
+    }
+    .orders-count-mine { background: var(--secondary); }
+
+    /* ── Error banner ────────────────────────────────────────────────── */
+    .order-error-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      background: var(--danger-bg);
+      border: 1.5px solid var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 1rem;
+      font-size: 0.88rem;
+      color: var(--danger);
+      font-weight: 600;
+      animation: slideDown 0.2s ease both;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .oeb-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .oeb-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--danger);
+      padding: 0;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* ── Order card ──────────────────────────────────────────────────── */
+    .order-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1.5px solid var(--border);
+      margin-bottom: 0.9rem;
+      overflow: hidden;
+      transition: box-shadow 0.15s;
+    }
+    .order-card:last-child { margin-bottom: 0; }
+    .order-card:hover { box-shadow: var(--shadow); }
+
+    /* card top stripe: order ID + time + status badge */
+    .oc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .oc-id {
+      font-family: 'Fredoka', cursive;
+      font-size: 1rem;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+    .oc-id small {
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-left: 0.35rem;
+    }
+    .oc-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* two-column detail grid */
+    .oc-body {
+      padding: 0.85rem 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem 1rem;
+    }
+    .oc-field { display: flex; flex-direction: column; gap: 0.1rem; }
+    .oc-field.full { grid-column: 1 / -1; }
+    .oc-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .oc-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .oc-value.price { color: var(--success); font-size: 1rem; }
+
+    /* products chip list */
+    .oc-products {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.1rem;
+    }
+    .oc-product-chip {
+      background: #fff3e0;
+      color: var(--secondary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 2rem;
+      border: 1px solid rgba(251,133,0,0.2);
+      white-space: nowrap;
+    }
+
+    /* footer: accept button */
+    .oc-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .oc-footer-info {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .btn-accept {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--success), #15803d);
+      color: white;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0.6rem 1.3rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 3px 10px rgba(22,163,74,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-accept:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-accept:active:not(:disabled) { transform: scale(0.96); }
+    .btn-accept:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* My-order card variant — slightly different accent */
+    .order-card.mine { border-color: rgba(251,133,0,0.3); }
+    .order-card.mine .oc-header { background: #fff8f0; }
+    .oc-status-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.18rem 0.5rem;
+      border-radius: 2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .oc-status-accepted { background: var(--success-bg); color: var(--success); }
+    .oc-status-pending  { background: var(--warn-bg);    color: var(--warn); }
+
+    /* ── Inventory badge on available order cards ─────────────────────── */
+    .oc-inv-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 2rem;
+      letter-spacing: 0.2px;
+    }
+    .oc-inv-ok  { background: var(--success-bg); color: var(--success); }
+    .oc-inv-low { background: var(--danger-bg);  color: var(--danger); }
+
+    /* ── Card footer meta (inventory badge + spacer) ─────────────────── */
+    .oc-footer-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Unfulfillable card — greyed out, accept button disabled ─────── */
+    .order-card-unfulfillable {
+      opacity: 0.62;
+      filter: grayscale(0.3);
+    }
+    .order-card-unfulfillable .oc-header {
+      background: var(--surface-2);
+    }
+    .btn-accept-disabled {
+      flex-shrink: 0;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.55rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: not-allowed;
+      white-space: nowrap;
+    }
+
+    /* ── Skeleton loading ────────────────────────────────────────────── */
+    .order-card-skeleton {
+      padding: 1rem;
+      pointer-events: none;
+    }
+    .sk-line {
+      background: linear-gradient(90deg, var(--border) 25%, #f0ede8 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 0.5rem;
+      height: 0.9rem;
+      margin-bottom: 0.65rem;
+    }
+    .sk-wide   { width: 60%; }
+    .sk-mid    { width: 80%; }
+    .sk-narrow { width: 40%; }
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+
+    /* ── Desktop: orders grid ────────────────────────────────────────── */
+    @media (min-width: 900px) {
+      #orders-available-wrap,
+      #orders-my-wrap {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1rem;
+        align-items: start;
+      }
+      .order-card { margin-bottom: 0; }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       DELIVERIES PAGE
+    ══════════════════════════════════════════════════════════════════ */
+    .del-stats-strip {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .del-stat {
+      flex: 1;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 0.85rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+    .del-stat-val {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.8rem;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .del-stat-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* delivery card status button */
+    .btn-start-delivery {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: white;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.55rem 1.1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      box-shadow: 0 3px 10px rgba(33,158,188,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-start-delivery:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-start-delivery:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-mark-delivered {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--success), #15803d);
+      color: white;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.55rem 1.1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      box-shadow: 0 3px 10px rgba(22,163,74,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-mark-delivered:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-mark-delivered:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .oc-status-out    { background: #dbeafe; color: #1d4ed8; }
+    .oc-status-delivered { background: var(--success-bg); color: var(--success); }
+    .oc-status-preparing { background: var(--warn-bg); color: var(--warn); }
+
+    /* Start Preparing button — warm tone, distinct from delivery-stage buttons */
+    .btn-start-preparing {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--warn), #b45309);
+      color: white;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 0.55rem 1.1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      box-shadow: 0 3px 10px rgba(217,119,6,0.3);
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-start-preparing:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-start-preparing:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Read-only pill shown in place of action buttons once delivered */
+    .btn-delivered-static {
+      flex-shrink: 0;
+      background: var(--success-bg);
+      color: var(--success);
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius);
+      white-space: nowrap;
+    }
+
+    /* Delivered cards become visually read-only */
+    .order-card.delivery-readonly { opacity: 0.82; }
+    .order-card.delivery-readonly .oc-header { background: var(--success-bg); }
+
+    @media (min-width: 900px) {
+      #deliveries-wrap {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1rem;
+        align-items: start;
+      }
+    }
+
+    /* ── Delivery stats strip: allow 4 stats to wrap gracefully on narrow phones ── */
+    .del-stats-strip { flex-wrap: wrap; }
+    .del-stats-strip .del-stat { min-width: 72px; }
+
+    /* ── Confirm-delivery modal — reuses .modal-overlay / .modal-sheet base ──── */
+    .confirm-modal-body {
+      font-size: 0.95rem;
+      color: var(--text);
+      margin: 0.75rem 0 1.25rem;
+      line-height: 1.4;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       DELIVERIES TOOLBAR — search + filter chips
+    ══════════════════════════════════════════════════════════════════ */
+    .del-toolbar {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .del-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .del-search-icon {
+      position: absolute;
+      left: 0.85rem;
+      font-size: 0.9rem;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .del-search-input {
+      width: 100%;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.9rem;
+      padding: 0.65rem 2.2rem 0.65rem 2.3rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .del-search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(227, 183, 120, 0.35); }
+    .del-search-clear {
+      position: absolute;
+      right: 0.5rem;
+      background: var(--surface-2);
+      border: none;
+      color: var(--text-muted);
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    .del-filter-chips {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.15rem;
+      scrollbar-width: none;
+    }
+    .del-filter-chips::-webkit-scrollbar { display: none; }
+    .del-chip {
+      flex-shrink: 0;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.4rem 0.9rem;
+      border-radius: 2rem;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .del-chip.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       ORDER DETAILS MODAL
+    ══════════════════════════════════════════════════════════════════ */
+    .order-details-sheet {
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-top: 1.75rem;
+    }
+    .od-close-btn {
+      position: absolute;
+      top: 0.9rem;
+      right: 1rem;
+      background: var(--surface-2);
+      border: none;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .od-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding-right: 2.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .od-order-id {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.2rem;
+      color: var(--secondary);
+    }
+    .od-scroll {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .od-section {
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .od-section:last-child { border-bottom: none; }
+    .od-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .od-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+    }
+    .od-label { color: var(--text-muted); font-weight: 600; }
+    .od-value { color: var(--text); font-weight: 700; text-align: right; }
+    .od-value.price { color: var(--secondary); }
+    .od-call-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.65rem;
+      text-decoration: none;
+    }
+
+    /* ── Timeline ─────────────────────────────────────────────────────── */
+    .od-timeline { display: flex; flex-direction: column; }
+    .od-tl-item {
+      position: relative;
+      display: flex;
+      gap: 0.75rem;
+      padding-bottom: 1.1rem;
+    }
+    .od-tl-item:last-child { padding-bottom: 0; }
+    .od-tl-dot {
+      flex-shrink: 0;
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 0.15rem;
+      position: relative;
+      z-index: 1;
+    }
+    .od-tl-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 0.4rem;
+      top: 1rem;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .od-tl-item.reached .od-tl-dot { background: var(--success); }
+    .od-tl-item.reached:not(:last-child)::before { background: var(--success); }
+    .od-tl-item.current .od-tl-dot {
+      background: var(--warn);
+      box-shadow: 0 0 0 4px var(--warn-bg);
+    }
+    .od-tl-label { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .od-tl-time { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .od-tl-item:not(.reached) .od-tl-label,
+    .od-tl-item:not(.reached) .od-tl-time { color: var(--text-light); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       INVENTORY PAGE
+    ══════════════════════════════════════════════════════════════════ */
+    .inv-row {
+      display: flex;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      gap: 0.85rem;
+      background: var(--surface);
+    }
+    .inv-row:last-child { border-bottom: none; }
+    .inv-row-icon {
+      width: 42px; height: 42px;
+      border-radius: 0.85rem;
+      background: #fff3e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .inv-row-body { flex: 1; min-width: 0; }
+    .inv-row-name {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .inv-row-price {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+    .inv-row-right { text-align: right; flex-shrink: 0; }
+    .inv-qty {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text);
+    }
+    .inv-qty.low  { color: var(--danger); }
+    .inv-qty.ok   { color: var(--success); }
+    .inv-qty.zero { color: var(--text-light); }
+    .inv-qty-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .inv-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .inv-low-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: var(--danger-bg);
+      color: var(--danger);
+      padding: 0.15rem 0.45rem;
+      border-radius: 2rem;
+      margin-top: 0.2rem;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       NOTIFICATIONS — mark as read interactivity
+    ══════════════════════════════════════════════════════════════════ */
+    .notif-item { cursor: pointer; }
+    .notif-item.unread:active { background: #fff3cd; }
+    .mark-all-read-btn {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.2rem 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       PROFILE — status badge
+    ══════════════════════════════════════════════════════════════════ */
+    .profile-status-active   { color: var(--success); font-weight: 700; }
+    .profile-status-offline  { color: var(--text-muted); font-weight: 700; }
+    .profile-status-inactive { color: var(--danger); font-weight: 700; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       PHASE 6.7 — MOBILE WORKFORCE PLATFORM
+       Offline banner, update prompt, install prompt, skeleton loaders,
+       and touch-target/scrolling polish. Nothing here changes any
+       existing page's layout or workflow — see Part 1/2's "reuse the
+       existing Employee Portal, do not redesign employee workflows."
+    ══════════════════════════════════════════════════════════════════ */
+
+    /* PART 11 — Connection Status / Offline Banner */
+    #pwa-offline-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: var(--danger); color: #fff; text-align: center;
+      font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1rem;
+      padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+      transform: translateY(-100%); transition: transform 0.25s ease;
+    }
+    #pwa-offline-banner.show { transform: translateY(0); }
+    #pwa-offline-banner.reconnected { background: var(--success); }
+
+    /* PART 6 — Update Available Prompt */
+    #pwa-update-banner {
+      position: fixed; left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+      z-index: 9998; background: var(--text); color: #fff; border-radius: var(--radius);
+      padding: 0.9rem 1.1rem; display: none; align-items: center; gap: 0.8rem;
+      box-shadow: var(--shadow); font-size: 0.85rem;
+    }
+    #pwa-update-banner.show { display: flex; }
+    #pwa-update-banner .msg { flex: 1; }
+    #pwa-update-banner button {
+      border: none; border-radius: 0.8rem; padding: 0.55rem 0.9rem; font-weight: 700;
+      font-family: "Quicksand", sans-serif; font-size: 0.8rem; cursor: pointer; min-height: 40px;
+    }
+    #pwa-update-refresh { background: var(--primary); color: var(--text); }
+    #pwa-update-later   { background: transparent; color: #fff; opacity: 0.75; }
+
+    /* PART 1/11 — Install Prompt */
+    #pwa-install-banner {
+      position: fixed; left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+      z-index: 9997; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.9rem 1.1rem; display: none; align-items: center; gap: 0.8rem; box-shadow: var(--shadow);
+    }
+    #pwa-install-banner.show { display: flex; }
+    #pwa-install-banner .icon { font-size: 1.6rem; }
+    #pwa-install-banner .msg { flex: 1; font-size: 0.82rem; color: var(--text); }
+    #pwa-install-banner .msg strong { display: block; font-family: "Fredoka", cursive; font-size: 0.9rem; color: var(--secondary); }
+    #pwa-install-banner button {
+      border: none; border-radius: 0.8rem; padding: 0.55rem 0.9rem; font-weight: 700;
+      font-family: "Quicksand", sans-serif; font-size: 0.8rem; cursor: pointer; min-height: 40px;
+    }
+    #pwa-install-yes { background: var(--primary); color: var(--text); }
+    #pwa-install-no  { background: transparent; color: var(--text-muted); }
+
+    /* PART 9 — .sk-line/.sk-wide/.sk-mid/@keyframes shimmer already exist
+       (see the "Skeleton loading" block near the top of this stylesheet)
+       — reused as-is rather than duplicated. .sk-card below is the one
+       new piece: a card wrapper for skeleton rows on screens that don't
+       already have one. */
+    .sk-card { background: var(--surface); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.7rem; box-shadow: var(--shadow-sm); }
+
+    /* PART 2/9 — touch targets, scrolling smoothness (additive, doesn't
+       change any layout — just ensures nothing tappable is ever smaller
+       than the 44px accessibility/mobile guideline) */
+    button, .tap-target, a.btn, .side-nav-item, .bottom-nav-item {
+      min-height: 44px;
+    }
+    body, .page-scroll, .modal-body { -webkit-overflow-scrolling: touch; }
+
+    /* PART 3 — "showing cached data" indicator on any list rendered from
+       the offline read cache instead of a live fetch */
+    .offline-cached-note {
+      font-size: 0.72rem; color: var(--text-muted); background: var(--surface-2);
+      border-radius: 0.6rem; padding: 0.4rem 0.7rem; margin-bottom: 0.6rem; text-align: center;
+    }
+    /* PHASE 7.1B — premium micro-interactions, additive only. */
+    button:not(:disabled):active, .tap-target:active, .order-card:active, .qa-btn:active {
+      transform: scale(0.96);
+    }
+    button, .tap-target { transition: transform 0.1s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s ease, background 0.15s ease; }
+    .modal-overlay.open, #pwa-install-banner.show, #pwa-update-banner.show {
+      animation: pwaFadeUp 0.22s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes pwaFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <!-- PHASE 6.7 — connection status, update, and install banners. Fixed-
+       position, live outside .app-shell so they float above every page
+       without any per-page markup changes. -->
+  <div id="pwa-offline-banner">📡 You're offline — showing your last saved data</div>
+  <div id="pwa-update-banner">
+    <span class="msg">🔄 A new version of the app is ready.</span>
+    <button id="pwa-update-later" type="button">Later</button>
+    <button id="pwa-update-refresh" type="button">Refresh Now</button>
+  </div>
+  <div id="pwa-install-banner">
+    <span class="icon">📲</span>
+    <span class="msg"><strong>Install the app</strong>Add Swahili Treats Team to your home screen</span>
+    <button id="pwa-install-no" type="button">Not now</button>
+    <button id="pwa-install-yes" type="button">Install</button>
+  </div>
+  <div class="app-shell">
+    <div class="app-row">
+
+      <!-- ── Side navigation (tablet/desktop only) ───────────────────────── -->
+      <nav class="side-nav">
+        <div class="side-nav-brand">
+          🍬 Swahili<span style="color:var(--primary)">Treats</span>
+        </div>
+        <div class="side-nav-items">
+          <button class="side-nav-item active" data-page="home" onclick="navigate('home')">
+            <span class="snav-icon">🏠</span><span>Home</span>
+          </button>
+          <button class="side-nav-item" data-page="orders" onclick="navigate('orders')">
+            <span class="snav-icon">📋</span><span>Orders</span>
+            <span class="snav-badge" id="orders-badge-desktop" style="display:none;">0</span>
+          </button>
+          <button class="side-nav-item" data-page="deliveries" onclick="navigate('deliveries')">
+            <span class="snav-icon">🛵</span><span>Deliveries</span>
+          </button>
+          <button class="side-nav-item" data-page="inventory" onclick="navigate('inventory')">
+            <span class="snav-icon">🏷️</span><span>Inventory</span>
+          </button>
+          <button class="side-nav-item" data-page="notifications" onclick="navigate('notifications')">
+            <span class="snav-icon">🔔</span><span>Notifications</span>
+            <span class="snav-badge" id="notif-badge-desktop" style="display:none;">0</span>
+          </button>
+        </div>
+        <div class="side-nav-footer">
+          <button class="side-nav-user" data-page="profile" onclick="navigate('profile')">
+            <span class="snav-user-avatar" id="snav-avatar">?</span>
+            <span class="snav-user-text">
+              <span class="snav-user-name" id="snav-name">…</span>
+              <span class="snav-user-role">View profile</span>
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="app-main-col">
+
+  <!-- ── Top header ──────────────────────────────────────────────────── -->
+  <header class="top-header">
+    <div class="header-brand">
+      🍬 Swahili<span style="color:var(--primary)">Treats</span>
+      <span class="badge">Team</span>
+    </div>
+    <div class="header-right">
+      <button class="notif-btn" id="header-notif-btn" aria-label="Notifications" onclick="navigate('notifications')">
+        🔔
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+      <button class="avatar-btn" id="avatar-btn" aria-label="Profile" onclick="navigate('profile')">
+        <span id="avatar-initials">?</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main scrollable area ─────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         HOME PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page active" id="page-home">
+      <div class="page-title">
+        👋 Good day<small id="greeting-name">…</small>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="cards-grid">
+        <div class="summary-card c-available">
+          <div class="sc-icon">📦</div>
+          <div class="sc-value" id="count-available">—</div>
+          <div class="sc-label">Available Orders</div>
+        </div>
+        <div class="summary-card c-active">
+          <div class="sc-icon">🚀</div>
+          <div class="sc-value" id="count-active">—</div>
+          <div class="sc-label">My Active</div>
+        </div>
+        <div class="summary-card c-inventory">
+          <div class="sc-icon">🏷️</div>
+          <div class="sc-value" id="count-inventory">—</div>
+          <div class="sc-label">My Inventory</div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="section-header">
+        <div class="section-title">Quick Actions</div>
+      </div>
+      <div class="list-card" style="margin-bottom:1.25rem;">
+        <div class="list-item" onclick="navigate('orders')">
+          <div class="li-icon orange">📋</div>
+          <div class="li-body">
+            <div class="li-title">View Orders</div>
+            <div class="li-sub">Browse and pick up available orders</div>
+          </div>
+          <div class="li-end" style="color:var(--text-muted);font-size:1.1rem;">›</div>
+        </div>
+        <div class="list-item" onclick="navigate('deliveries')">
+          <div class="li-icon blue">🛵</div>
+          <div class="li-body">
+            <div class="li-title">My Deliveries</div>
+            <div class="li-sub">Track your active deliveries</div>
+          </div>
+          <div class="li-end" style="color:var(--text-muted);font-size:1.1rem;">›</div>
+        </div>
+        <div class="list-item" onclick="navigate('inventory')">
+          <div class="li-icon green">🏷️</div>
+          <div class="li-body">
+            <div class="li-title">Inventory Count</div>
+            <div class="li-sub">Update stock levels</div>
+          </div>
+          <div class="li-end" style="color:var(--text-muted);font-size:1.1rem;">›</div>
+        </div>
+      </div>
+
+      <!-- Recent notifications preview -->
+      <div class="section-header">
+        <div class="section-title">Recent Alerts</div>
+        <button class="see-all-btn" onclick="navigate('notifications')">See all</button>
+      </div>
+      <div class="list-card" id="home-notifs-list">
+        <div class="list-item">
+          <div class="li-icon yellow">🔔</div>
+          <div class="li-body">
+            <div class="li-title skeleton skeleton-text wide"></div>
+            <div class="li-sub skeleton skeleton-text narrow" style="margin-top:0.3rem;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         ORDERS PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-orders">
+
+      <!-- ── Page header with live indicator ─────────────────────────── -->
+      <div class="orders-page-header">
+        <div class="page-title" style="margin-bottom:0">📋 Orders</div>
+        <div class="orders-live-pill" id="orders-live-pill">
+          <span class="live-dot"></span> Live
+        </div>
+      </div>
+
+      <!-- ── Order error banner (validation / network errors) ──────────── -->
+      <div class="order-error-banner" id="order-error-banner" style="display:none">
+        <span class="oeb-icon">⚠️</span>
+        <span id="order-error-text">Something went wrong.</span>
+        <button class="oeb-close" onclick="Orders.dismissError()" aria-label="Dismiss error">✕</button>
+      </div>
+
+      <!-- ═══════════════════ AVAILABLE ORDERS ═══════════════════════════ -->
+      <div class="section-header">
+        <div class="section-title">Available Orders</div>
+        <span class="orders-count-pill" id="available-count-pill" style="display:none"></span>
+      </div>
+      <div id="orders-available-wrap">
+        <!-- Skeleton shown on first load -->
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-wide"></div>
+          <div class="sk-line sk-mid"></div>
+          <div class="sk-line sk-narrow"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ MY ACTIVE ORDERS ════════════════════════════ -->
+      <div class="section-header" style="margin-top:1.25rem">
+        <div class="section-title">My Active Orders</div>
+        <span class="orders-count-pill orders-count-mine" id="my-count-pill" style="display:none"></span>
+      </div>
+      <div id="orders-my-wrap">
+        <div class="empty-state" style="padding:1.5rem 1rem">
+          <div class="em-icon">🎉</div>
+          <div class="em-title">All clear!</div>
+          <div class="em-sub">Orders you accept will appear here</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         DELIVERIES PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-deliveries">
+      <div class="orders-page-header">
+        <div class="page-title" style="margin-bottom:0">🛵 Deliveries</div>
+        <button class="see-all-btn" onclick="Deliveries.load()" style="font-size:0.8rem;">↻ Refresh</button>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="del-stats-strip" id="del-stats-strip">
+        <div class="del-stat">
+          <span class="del-stat-val" id="del-count-accepted">—</span>
+          <span class="del-stat-label">Accepted</span>
+        </div>
+        <div class="del-stat">
+          <span class="del-stat-val" id="del-count-preparing">—</span>
+          <span class="del-stat-label">Preparing</span>
+        </div>
+        <div class="del-stat">
+          <span class="del-stat-val" id="del-count-delivering">—</span>
+          <span class="del-stat-label">Out for Delivery</span>
+        </div>
+        <div class="del-stat">
+          <span class="del-stat-val" id="del-count-done">—</span>
+          <span class="del-stat-label">Delivered Today</span>
+        </div>
+      </div>
+
+      <!-- Search + filter toolbar -->
+      <div class="del-toolbar">
+        <div class="del-search-wrap">
+          <span class="del-search-icon">🔍</span>
+          <input
+            type="text"
+            id="del-search-input"
+            class="del-search-input"
+            placeholder="Search by name, phone, or order ID…"
+            aria-label="Search by name, phone, or order ID"
+            oninput="Deliveries.onSearchInput(this.value)"
+          />
+          <button class="del-search-clear" id="del-search-clear" style="display:none" onclick="Deliveries.clearSearch()" aria-label="Clear search">✕</button>
+        </div>
+        <div class="del-filter-chips" id="del-filter-chips">
+          <button class="del-chip active" data-filter="all" onclick="Deliveries.setFilter('all')">All</button>
+          <button class="del-chip" data-filter="accepted" onclick="Deliveries.setFilter('accepted')">Accepted</button>
+          <button class="del-chip" data-filter="preparing" onclick="Deliveries.setFilter('preparing')">Preparing</button>
+          <button class="del-chip" data-filter="delivering" onclick="Deliveries.setFilter('delivering')">Delivering</button>
+          <button class="del-chip" data-filter="delivered" onclick="Deliveries.setFilter('delivered')">Delivered</button>
+        </div>
+      </div>
+
+      <div id="deliveries-wrap">
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-wide"></div>
+          <div class="sk-line sk-mid"></div>
+          <div class="sk-line sk-narrow"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         INVENTORY PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-inventory">
+      <div class="orders-page-header">
+        <div class="page-title" style="margin-bottom:0">🏷️ My Inventory</div>
+        <button class="see-all-btn" onclick="Inventory.load()" style="font-size:0.8rem;">↻ Refresh</button>
+      </div>
+
+      <!-- Summary strip -->
+      <div class="cards-grid" style="margin-bottom:1rem;">
+        <div class="summary-card c-available">
+          <div class="sc-icon">📦</div>
+          <div class="sc-value" id="inv-total">—</div>
+          <div class="sc-label">Total Items</div>
+        </div>
+        <div class="summary-card c-active">
+          <div class="sc-icon">⚠️</div>
+          <div class="sc-value" id="inv-low">—</div>
+          <div class="sc-label">Low Stock</div>
+        </div>
+        <div class="summary-card c-inventory">
+          <div class="sc-icon">✅</div>
+          <div class="sc-value" id="inv-ok">—</div>
+          <div class="sc-label">In Stock</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Stock Levels</div>
+      </div>
+      <div id="inventory-wrap">
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-wide"></div>
+          <div class="sk-line sk-mid"></div>
+          <div class="sk-line sk-narrow"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         NOTIFICATIONS PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-notifications">
+      <div class="page-title">🔔 Notifications</div>
+
+      <div class="list-card" id="notif-list">
+        <!-- Skeleton while loading -->
+        <div class="notif-item unread" id="notif-skeleton">
+          <div class="ni-dot"></div>
+          <div class="ni-body">
+            <div class="skeleton skeleton-text wide" style="height:0.85rem;margin-bottom:0.4rem;"></div>
+            <div class="skeleton skeleton-text" style="height:0.75rem;width:55%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PROFILE PAGE
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="page" id="page-profile">
+      <div class="page-title">👤 Profile</div>
+
+      <div style="margin-bottom:1.25rem;">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-role" id="profile-role-badge">—</div>
+      </div>
+
+      <div class="info-card">
+        <div class="ic-head">📋 Account details</div>
+        <div class="info-row">
+          <span class="ir-label">Name</span>
+          <span class="ir-val" id="profile-fullname">—</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Email</span>
+          <span class="ir-val" id="profile-email" style="word-break:break-all;">—</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Phone</span>
+          <span class="ir-val" id="profile-phone">—</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Role</span>
+          <span class="ir-val" id="profile-role">—</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Status</span>
+          <span class="ir-val" id="profile-status">—</span>
+        </div>
+        <div class="info-row">
+          <span class="ir-label">Last seen</span>
+          <span class="ir-val" id="profile-last-seen">—</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="openPasswordModal()">
+        🔒 Change Password
+      </button>
+      <button class="btn btn-danger" onclick="doLogout()">
+        🚪 Sign Out
+      </button>
+    </section>
+
+  </main>
+
+      </div> <!-- /.app-main-col -->
+    </div> <!-- /.app-row -->
+
+  <!-- ── Bottom navigation (phones / narrow tablets only) ────────────────── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="home" onclick="navigate('home')" aria-label="Home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" data-page="orders" onclick="navigate('orders')" aria-label="Orders">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Orders</span>
+      <span class="nav-badge" id="orders-badge" style="display:none;">0</span>
+    </button>
+    <button class="nav-item" data-page="deliveries" onclick="navigate('deliveries')" aria-label="Deliveries">
+      <span class="nav-icon">🛵</span>
+      <span class="nav-label">Deliveries</span>
+    </button>
+    <button class="nav-item" data-page="inventory" onclick="navigate('inventory')" aria-label="Inventory">
+      <span class="nav-icon">🏷️</span>
+      <span class="nav-label">Inventory</span>
+    </button>
+    <button class="nav-item" data-page="notifications" onclick="navigate('notifications')" aria-label="Notifications">
+      <span class="nav-icon">🔔</span>
+      <span class="nav-label">Alerts</span>
+      <span class="nav-badge" id="notif-badge" style="display:none;">0</span>
+    </button>
+    <button class="nav-item" data-page="profile" onclick="navigate('profile')" aria-label="Profile">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </button>
+  </nav>
+  </div> <!-- /.app-shell -->
+
+  <!-- ── Change password modal ─────────────────────────────────────────── -->
+  <div class="modal-overlay" id="pw-modal" onclick="handleModalClick(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">🔒 Change Password</div>
+      <div class="modal-field">
+        <label for="new-pw">New password</label>
+        <input type="password" id="new-pw" placeholder="Min 6 characters" autocomplete="new-password" />
+      </div>
+      <div class="modal-field">
+        <label for="confirm-pw">Confirm new password</label>
+        <input type="password" id="confirm-pw" placeholder="Repeat password" autocomplete="new-password" />
+      </div>
+      <div class="modal-error" id="pw-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closePwModal()">Cancel</button>
+        <button class="btn btn-primary" id="save-pw-btn" onclick="savePassword()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Confirm delivery modal ────────────────────────────────────────── -->
+  <div class="modal-overlay" id="confirm-delivery-modal" onclick="Deliveries.handleModalClick(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✅ Confirm Delivery</div>
+      <div class="confirm-modal-body">Confirm this order has been delivered?</div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="Deliveries.closeConfirmModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirm-delivery-btn" onclick="Deliveries.confirmMarkDelivered()">Confirm Delivery</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Order details modal ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="order-details-modal" onclick="Deliveries.handleDetailsModalClick(event)">
+    <div class="modal-sheet order-details-sheet">
+      <div class="modal-handle"></div>
+      <button class="od-close-btn" onclick="Deliveries.closeDetailsModal()" aria-label="Close">✕</button>
+      <div class="od-header">
+        <div class="od-order-id" id="od-order-id">#—</div>
+        <span class="oc-status-badge" id="od-status-badge">—</span>
+      </div>
+
+      <div class="od-scroll">
+        <div class="od-section">
+          <div class="od-section-title">Customer</div>
+          <div class="od-row"><span class="od-label">Name</span><span class="od-value" id="od-customer-name">—</span></div>
+          <div class="od-row"><span class="od-label">Phone</span><span class="od-value" id="od-phone">—</span></div>
+          <a class="btn btn-primary od-call-btn" id="od-call-btn" href="tel:" style="display:none">📞 Call Customer</a>
+        </div>
+
+        <div class="od-section">
+          <div class="od-section-title">Delivery Location</div>
+          <div class="od-row"><span class="od-label">Campus</span><span class="od-value" id="od-campus">—</span></div>
+          <div class="od-row"><span class="od-label">Hostel</span><span class="od-value" id="od-hostel">—</span></div>
+          <div class="od-row"><span class="od-label">Room</span><span class="od-value" id="od-room">—</span></div>
+        </div>
+
+        <div class="od-section">
+          <div class="od-section-title">Order</div>
+          <div id="od-products"></div>
+          <div class="od-row"><span class="od-label">Quantity</span><span class="od-value" id="od-quantity">—</span></div>
+          <div class="od-row"><span class="od-label">Total Price</span><span class="od-value price" id="od-total">—</span></div>
+        </div>
+
+        <div class="od-section">
+          <div class="od-section-title">Timeline</div>
+          <div class="od-timeline" id="od-timeline"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ─────────────────────────────────────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     CONFIG & GLOBALS
+  ════════════════════════════════════════════════════════════════════════ */
+  const SUPABASE_URL  = "https://hamqmvjucrvsjhqfsehe.supabase.co";
+  const SUPABASE_ANON = "sb_publishable_8g8mp-PH2uvpPR4RbTmGsg_kdXw9fXb";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let currentEmployee = null; // { id, user_id, name, email, phone, role, last_seen, ... }
+  let toastTimer = null;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     NAVIGATION
+  ════════════════════════════════════════════════════════════════════════ */
+  function navigate(pageId) {
+    // Update pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const page = document.getElementById('page-' + pageId);
+    if (page) page.classList.add('active');
+
+    // Update nav items (mobile bottom nav + desktop side nav, kept in sync)
+    document.querySelectorAll('.nav-item, .side-nav-item, .side-nav-user').forEach(item => {
+      item.classList.toggle('active', item.dataset.page === pageId);
+    });
+
+    // Desktop content area always starts scrolled to top on page switch
+    document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'instant' });
+
+    // Page-specific init
+    if (pageId === 'notifications') loadNotifications();
+    if (pageId === 'home') refreshHomeStats();
+    if (pageId === 'orders') Orders.loadAll();
+    if (pageId === 'deliveries') Deliveries.load();
+    if (pageId === 'inventory') Inventory.load();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     TOAST
+  ════════════════════════════════════════════════════════════════════════ */
+  function showToast(msg, duration = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     AUTH CHECK & BOOT
+  ════════════════════════════════════════════════════════════════════════ */
+  async function boot() {
+    // PHASE 6.10 Part 7 — Maintenance Center. Checked first, before auth
+    // even resolves, since maintenance_windows is publicly readable
+    // (same trust model as `announcements`) and an employee shouldn't
+    // need to sign in just to be told the app is temporarily down.
+    try {
+      const { data: mw } = await sb.from('maintenance_windows').select('title, message').eq('status', 'active').maybeSingle();
+      if (mw) {
+        document.body.innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:'Quicksand',sans-serif;background:#f6f2eb">
+            <div style="max-width:380px">
+              <div style="font-size:3rem;margin-bottom:1rem">🚧</div>
+              <h1 style="font-family:'Fredoka',cursive;color:#fb8500;font-size:1.3rem;margin:0 0 0.6rem">${mw.title.replace(/</g, '&lt;')}</h1>
+              <p style="color:#6b6b80;line-height:1.5">${mw.message.replace(/</g, '&lt;')}</p>
+            </div>
+          </div>`;
+        return;
+      }
+    } catch (e) { /* if this check itself fails, don't block the whole app on it — fail open */ }
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.replace('/employee/login.html');
+      return;
+    }
+
+    // Fetch employee profile
+    const { data: emp, error } = await sb
+      .from('employees')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (error || !emp) {
+      // Not in employees table — sign out
+      await sb.auth.signOut();
+      window.location.replace('/employee/login.html');
+      return;
+    }
+
+    // Redirect admins/managers away
+    if (emp.role === 'admin' || emp.role === 'manager') {
+      window.location.replace('/admin.html');
+      return;
+    }
+
+    currentEmployee = { ...emp, email: session.user.email };
+
+    // PHASE 6.7 — Mobile Workforce Platform. Runs only after the exact
+    // same employee-only auth check above has passed (Part 10: "Employees
+    // can only install and access the Employee PWA... prevent
+    // unauthorized access through direct URLs" — this file already
+    // redirects non-employees out above; the PWA layer just rides on
+    // top of that, it doesn't re-implement it).
+    initializePWA();
+
+    // Update last_seen
+    sb.from('employees')
+      .update({ last_seen: new Date().toISOString() })
+      .eq('user_id', session.user.id)
+      .then(() => {});
+
+    renderEmployeeUI();
+    refreshHomeStats();
+    loadNotifications();
+    Orders.startRealtime();                    // live order updates across all employees
+    Deliveries.subscribeToRealtimeOrders();     // live updates for this employee's own deliveries
+    Inventory.subscribeToRealtimeInventory();   // live updates for this employee's My Stock page
+    subscribeNotificationsRealtime();           // Phase 7.5 — live badge/list updates, no manual refresh
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     RENDER EMPLOYEE UI
+  ════════════════════════════════════════════════════════════════════════ */
+  function renderEmployeeUI() {
+    const e = currentEmployee;
+    const name = e.name || e.full_name || e.email || 'Employee';
+    const firstName = name.split(' ')[0];
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+    // Header
+    document.getElementById('avatar-initials').textContent = initials;
+    document.getElementById('greeting-name').textContent = ', ' + firstName + '!';
+
+    // Desktop sidebar identity card
+    document.getElementById('snav-avatar').textContent = initials;
+    document.getElementById('snav-name').textContent = name;
+
+    // Profile page
+    document.getElementById('profile-avatar').textContent = initials;
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('profile-role-badge').textContent = (e.role || 'employee').toUpperCase();
+    document.getElementById('profile-fullname').textContent = name;
+    document.getElementById('profile-email').textContent = e.email || '—';
+    document.getElementById('profile-phone').textContent = e.phone || '—';
+    document.getElementById('profile-role').textContent = capitalise(e.role || 'employee');
+
+    // Status with colour coding
+    const statusEl = document.getElementById('profile-status');
+    if (statusEl) {
+      const s = e.status || 'offline';
+      statusEl.textContent = capitalise(s);
+      statusEl.className = 'ir-val profile-status-' + s;
+    }
+
+    document.getElementById('profile-last-seen').textContent = e.last_seen
+      ? relativeTime(e.last_seen) : 'Never';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     HOME STATS
+  ════════════════════════════════════════════════════════════════════════ */
+  async function refreshHomeStats() {
+    if (!currentEmployee) return; // guard: called before boot completes
+
+    // Run all queries in parallel for speed
+    const [availRes, activeRes, invRowsRes, globalInvRes] = await Promise.all([
+      // Available orders (pending + unassigned)
+      sb.from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .is('assigned_employee_id', null),
+
+      // My active orders (all in-flight statuses — includes legacy status names
+      // from before the accepted-preparing-delivering-delivered workflow existed)
+      sb.from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_employee_id', currentEmployee.id)
+        .in('status', ['accepted', 'preparing', 'delivering', 'claimed', 'in_progress', 'out_for_delivery']),
+
+      // My per-product stock rows
+      sb.from('employee_inventory')
+        .select('quantity, product_id')
+        .eq('employee_id', currentEmployee.id),
+
+      // Global low-stock thresholds
+      sb.from('inventory')
+        .select('product_id, low_stock_threshold'),
+    ]);
+
+    const available = availRes.count ?? 0;
+    const myActive  = activeRes.count ?? 0;
+    const invRows   = invRowsRes.data || [];
+
+    // Build threshold lookup map
+    const thresholdMap = {};
+    (globalInvRes.data || []).forEach(r => {
+      thresholdMap[r.product_id] = r.low_stock_threshold ?? 10;
+    });
+
+    const invTotal = invRows.length;
+    const invLow   = invRows.filter(r => r.quantity > 0 && r.quantity <= (thresholdMap[r.product_id] ?? 10)).length;
+    const invZero  = invRows.filter(r => r.quantity === 0).length;
+    const invOk    = invTotal - invLow - invZero;
+
+    // Home summary cards
+    document.getElementById('count-available').textContent = available;
+    document.getElementById('count-active').textContent    = myActive;
+    document.getElementById('count-inventory').textContent = invTotal;
+
+    // Inventory page stat cards (safe even when page is not active)
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('inv-total', invTotal);
+    setEl('inv-low',   invLow + invZero);
+    setEl('inv-ok',    invOk);
+
+    // Orders nav badge: show count of available orders
+    updateOrdersBadge(available);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     NOTIFICATIONS
+  ════════════════════════════════════════════════════════════════════════ */
+  async function loadNotifications() {
+    if (!currentEmployee) return;
+    const listEl = document.getElementById('notif-list');
+    const page   = document.getElementById('page-notifications');
+
+    let notifs, isFromCache = false;
+
+    // PART 3 — offline: fall through to the exact same render code below
+    // using the last synced list, instead of a separate/duplicated
+    // renderer that could drift from it over time.
+    if (!navigator.onLine && window.PWAOffline) {
+      const cached = await PWAOffline.getCache('employee_notifications');
+      if (cached) { notifs = cached; isFromCache = true; }
+    }
+
+    if (!isFromCache) {
+      // Re-show skeleton every time (handles navigate-away-and-back)
+      listEl.innerHTML = `
+        <div class="notif-item">
+          <div class="ni-dot"></div>
+          <div class="ni-body">
+            <div class="skeleton skeleton-text wide" style="height:0.85rem;margin-bottom:0.4rem;"></div>
+            <div class="skeleton skeleton-text" style="height:0.75rem;width:50%;"></div>
+          </div>
+        </div>`;
+
+      const { data, error } = await sb
+        .from('notifications')
+        .select('*')
+        .eq('employee_id', currentEmployee.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        listEl.innerHTML = `<div class="empty-state"><div class="em-icon">⚠️</div><div class="em-title">Could not load</div><div class="em-sub">${escHtml(error.message)}</div></div>`;
+        return;
+      }
+      notifs = data || [];
+      if (window.PWAOffline) PWAOffline.saveCache('employee_notifications', notifs);
+    }
+
+    if (!notifs || notifs.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="em-icon">🔔</div>
+          <div class="em-title">No notifications yet</div>
+          <div class="em-sub">Updates from your team will show here</div>
+        </div>`;
+      updateNotifBadge(0);
+      renderHomeNotifsPreview([]);
+      return;
+    }
+
+    const unreadItems = notifs.filter(n => !n.is_read);
+    updateNotifBadge(unreadItems.length);
+
+    // Build header with mark-all button if there are unread items
+    listEl.innerHTML = isFromCache ? '<div class="offline-cached-note">📡 Offline — showing your last synced notifications</div>' : '';
+    if (unreadItems.length > 0) {
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'display:flex;align-items:center;justify-content:flex-end;padding:0.6rem 1rem 0;';
+      hdr.innerHTML = `<button class="mark-all-read-btn" onclick="markAllNotifsRead()">Mark all as read</button>`;
+      listEl.appendChild(hdr);
+    }
+
+    notifs.forEach(n => {
+      const isUnread = !n.is_read;
+      const item = document.createElement('div');
+      item.className = 'notif-item' + (isUnread ? ' unread' : '');
+      item.dataset.notifId = n.id;
+      item.innerHTML = `
+        <div class="ni-dot ${isUnread ? '' : 'read'}" id="ni-dot-${n.id}"></div>
+        <div class="ni-body">
+          <div class="ni-title">${escHtml(n.title || 'Notification')}</div>
+          <div class="ni-msg">${escHtml(n.message || '')}</div>
+          <div class="ni-time">${n.created_at ? relativeTime(n.created_at) : ''}</div>
+        </div>`;
+      // Tap to mark as read
+      if (isUnread) {
+        item.addEventListener('click', () => markNotifRead(n.id, item));
+      }
+      listEl.appendChild(item);
+    });
+
+    renderHomeNotifsPreview(notifs.slice(0, 3));
+  }
+
+  async function markNotifRead(notifId, itemEl) {
+    // Optimistic UI update
+    itemEl.classList.remove('unread');
+    const dot = itemEl.querySelector('.ni-dot');
+    if (dot) { dot.classList.remove(''); dot.classList.add('read'); }
+    itemEl.removeEventListener('click', markNotifRead);
+
+    // PART 4 — background synchronization. This is a deliberately
+    // low-stakes, idempotent write (marking something read has no
+    // ordering/inventory/financial consequence if it replays late or
+    // twice), which is exactly the kind of action safe to queue and
+    // replay automatically — unlike order-status transitions, which
+    // this phase intentionally leaves untouched (see the comment on
+    // updateOrderStatus for why).
+    if (!navigator.onLine && window.PWAOffline) {
+      await PWAOffline.queueMutation({ type: 'mark_notif_read', notifId, employeeId: currentEmployee.id });
+    } else {
+      await sb.from('notifications')
+        .update({ is_read: true })
+        .eq('id', notifId)
+        .eq('employee_id', currentEmployee.id);
+    }
+
+    // Decrement badge
+    const badge = document.getElementById('notif-badge');
+    const badgeD = document.getElementById('notif-badge-desktop');
+    const dot2 = document.getElementById('notif-dot');
+    const cur = parseInt(badge?.textContent || '0', 10);
+    updateNotifBadge(Math.max(0, cur - 1));
+  }
+
+  async function markAllNotifsRead() {
+    await sb.from('notifications')
+      .update({ is_read: true })
+      .eq('employee_id', currentEmployee.id)
+      .eq('is_read', false);
+    updateNotifBadge(0);
+    loadNotifications(); // reload to reflect changes
+  }
+
+  function renderHomeNotifsPreview(notifs) {
+    const el = document.getElementById('home-notifs-list');
+    if (!notifs || notifs.length === 0) {
+      el.innerHTML = `
+        <div class="list-item">
+          <div class="li-icon yellow">🔔</div>
+          <div class="li-body">
+            <div class="li-title">No recent alerts</div>
+            <div class="li-sub">You're all caught up!</div>
+          </div>
+        </div>`;
+      return;
+    }
+    el.innerHTML = '';
+    notifs.forEach(n => {
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.onclick = () => navigate('notifications');
+      item.innerHTML = `
+        <div class="li-icon yellow">🔔</div>
+        <div class="li-body">
+          <div class="li-title">${escHtml(n.title || 'Notification')}</div>
+          <div class="li-sub">${escHtml((n.message || n.body || '').slice(0, 60))}</div>
+        </div>
+        <div class="li-end" style="color:var(--text-muted);font-size:1rem;">›</div>`;
+      el.appendChild(item);
+    });
+  }
+
+  function updateNotifBadge(count) {
+    const badge        = document.getElementById('notif-badge');
+    const badgeDesktop = document.getElementById('notif-badge-desktop');
+    const dot          = document.getElementById('notif-dot');
+    const label        = count > 9 ? '9+' : String(count);
+    if (count > 0) {
+      badge.style.display = 'flex';
+      badge.textContent   = label;
+      if (badgeDesktop) { badgeDesktop.style.display = 'flex'; badgeDesktop.textContent = label; }
+      dot.classList.add('active');
+    } else {
+      badge.style.display = 'none';
+      if (badgeDesktop) badgeDesktop.style.display = 'none';
+      dot.classList.remove('active');
+    }
+  }
+
+  /* Phase 7.5 Part 3 — realtime notifications. Previously this table was
+     only ever fetched once, on login/navigate; a notification created
+     while the employee had the app open sat invisible until they manually
+     re-opened the Notifications page. Re-uses loadNotifications()'s
+     existing render/cache/badge logic rather than duplicating it. */
+  let _notifRealtimeCh = null;
+  function subscribeNotificationsRealtime() {
+    if (_notifRealtimeCh || !currentEmployee) return;
+    _notifRealtimeCh = sb
+      .channel('employee-notifications-realtime-' + currentEmployee.id)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: 'employee_id=eq.' + currentEmployee.id },
+        () => { loadNotifications(); }
+      )
+      .subscribe();
+  }
+
+  function updateOrdersBadge(count) {
+    const badge  = document.getElementById('orders-badge');
+    const badgeD = document.getElementById('orders-badge-desktop');
+    const label  = count > 9 ? '9+' : String(count);
+    if (count > 0) {
+      if (badge)  { badge.style.display  = 'flex'; badge.textContent  = label; }
+      if (badgeD) { badgeD.style.display = 'flex'; badgeD.textContent = label; }
+    } else {
+      if (badge)  badge.style.display  = 'none';
+      if (badgeD) badgeD.style.display = 'none';
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     CHANGE PASSWORD
+  ════════════════════════════════════════════════════════════════════════ */
+  function openPasswordModal() {
+    document.getElementById('new-pw').value     = '';
+    document.getElementById('confirm-pw').value = '';
+    document.getElementById('pw-error').textContent = '';
+    document.getElementById('pw-modal').classList.add('open');
+    setTimeout(() => document.getElementById('new-pw').focus(), 350);
+  }
+  function closePwModal() {
+    document.getElementById('pw-modal').classList.remove('open');
+  }
+  function handleModalClick(e) {
+    if (e.target === document.getElementById('pw-modal')) closePwModal();
+  }
+
+  async function savePassword() {
+    const newPw     = document.getElementById('new-pw').value;
+    const confirmPw = document.getElementById('confirm-pw').value;
+    const errEl     = document.getElementById('pw-error');
+    const btn       = document.getElementById('save-pw-btn');
+
+    errEl.textContent = '';
+
+    if (!newPw)            { errEl.textContent = 'Please enter a new password.'; return; }
+    if (newPw.length < 6)  { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    if (newPw !== confirmPw) { errEl.textContent = 'Passwords do not match.'; return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+    const { error } = await sb.auth.updateUser({ password: newPw });
+
+    btn.disabled = false;
+    btn.textContent = 'Save';
+
+    if (error) {
+      errEl.textContent = error.message || 'Failed to update password. Try again.';
+    } else {
+      closePwModal();
+      showToast('✅ Password updated!');
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LOGOUT
+  ════════════════════════════════════════════════════════════════════════ */
+  async function doLogout() {
+    if (!confirm('Sign out of your account?')) return;
+    await sb.auth.signOut();
+    window.location.replace('/employee/login.html');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     UTILITIES
+  ════════════════════════════════════════════════════════════════════════ */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function capitalise(s) {
+    return String(s).charAt(0).toUpperCase() + String(s).slice(1);
+  }
+  function relativeTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    const diff = Date.now() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)   return 'Just now';
+    if (mins < 60)  return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)   return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7)   return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     ORDERS MODULE  — Phase 3 Step 2
+     Self-contained object so future phases (delivery, inventory deduction)
+     can be added here without touching the rest of the file.
+  ════════════════════════════════════════════════════════════════════════ */
+  const Orders = (() => {
+
+    /* ═══════════════════════════════════════════════════════════════════
+       STATE
+    ════════════════════════════════════════════════════════════════════ */
+    let _available   = [];    // pending + unassigned + employee CAN fulfil
+    let _unavailable = [];    // pending + unassigned + employee CANNOT fulfil (shown greyed)
+    let _mine        = [];    // orders assigned to this employee (any active status)
+    let _realtimeCh  = null;  // supabase realtime channel handle
+    let _accepting   = {};    // { [orderId]: true } — double-tap / race guard
+    let _invMap      = {};    // { [productName]: qty } — employee's current stock
+
+    /* ═══════════════════════════════════════════════════════════════════
+       DOM HELPERS
+    ════════════════════════════════════════════════════════════════════ */
+    const dom = {
+      availWrap:  () => document.getElementById('orders-available-wrap'),
+      mineWrap:   () => document.getElementById('orders-my-wrap'),
+      errBanner:  () => document.getElementById('order-error-banner'),
+      errText:    () => document.getElementById('order-error-text'),
+      availPill:  () => document.getElementById('available-count-pill'),
+      minePill:   () => document.getElementById('my-count-pill'),
+    };
+
+    /* ═══════════════════════════════════════════════════════════════════
+       ERROR / TOAST HELPERS
+    ════════════════════════════════════════════════════════════════════ */
+    function showError(msg) {
+      dom.errText().textContent = msg;
+      dom.errBanner().style.display = 'flex';
+    }
+    function dismissError() {
+      const b = dom.errBanner();
+      if (b) b.style.display = 'none';
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       SKELETON
+    ════════════════════════════════════════════════════════════════════ */
+    function showSkeleton() {
+      dom.availWrap().innerHTML = [1, 2, 3].map(() => `
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-wide"></div>
+          <div class="sk-line sk-mid"></div>
+          <div class="sk-line sk-narrow"></div>
+        </div>`).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       FORMAT HELPERS
+    ════════════════════════════════════════════════════════════════════ */
+    function fmtPrice(v) {
+      if (v == null) return '—';
+      return 'KSh ' + Number(v).toLocaleString();
+    }
+
+    // Use the order_id UUID field (human-readable short code) when present
+    function fmtOrderId(o) {
+      if (o.order_id) return '#' + String(o.order_id).slice(0, 8).toUpperCase();
+      return '#' + String(o.id).padStart(5, '0');
+    }
+
+    // Build product chips — schema stores product name + quantity directly on orders
+    // Phase 4 will switch to order_items; this helper stays, just the data source changes
+    function buildProductChips(order) {
+      if (!order.product) return '<span class="oc-value" style="color:var(--text-muted)">—</span>';
+      return `<div class="oc-products">
+        <span class="oc-product-chip">${escHtml(order.product)} × ${order.quantity ?? 1}</span>
+      </div>`;
+    }
+
+    // Returns { canFulfil: bool, held: number, needed: number }
+    function inventoryCheck(order) {
+      if (!order.product || !order.quantity) return { canFulfil: true, held: 0, needed: 0 };
+      const held   = _invMap[order.product] ?? 0;
+      const needed = order.quantity ?? 1;
+      return { canFulfil: held >= needed, held, needed };
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       CARD RENDERERS
+    ════════════════════════════════════════════════════════════════════ */
+    function renderAvailableCard(o) {
+      const id    = String(o.id);
+      const inv   = inventoryCheck(o);
+      const canDo = inv.canFulfil;
+
+      // Inventory badge — shown on every available card so employee knows at a glance
+      const invBadge = o.product
+        ? canDo
+          ? `<span class="oc-inv-badge oc-inv-ok">📦 ${inv.held} in stock</span>`
+          : `<span class="oc-inv-badge oc-inv-low">⚠️ Need ${inv.needed}, have ${inv.held}</span>`
+        : '';
+
+      // Accept button — disabled + tooltip when insufficient stock
+      const acceptBtn = canDo
+        ? `<button class="btn-accept" id="accept-btn-${id}" onclick="Orders.accept(${id})">
+             ✅ Accept Order
+           </button>`
+        : `<button class="btn-accept btn-accept-disabled" disabled
+             title="You don't have enough stock to fulfil this order">
+             🚫 Insufficient Stock
+           </button>`;
+
+      return `
+        <div class="order-card${canDo ? '' : ' order-card-unfulfillable'}"
+             id="order-card-${id}" data-order-id="${id}">
+          <div class="oc-header">
+            <div class="oc-id">
+              ${escHtml(fmtOrderId(o))}
+              <small>${escHtml(relativeTime(o.created_at))}</small>
+            </div>
+            <span class="oc-status-badge oc-status-pending">Pending</span>
+          </div>
+          <div class="oc-body">
+            <div class="oc-field">
+              <span class="oc-label">Customer</span>
+              <span class="oc-value">${escHtml(o.customer_name || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Phone</span>
+              <span class="oc-value">${escHtml(o.phone || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Campus</span>
+              <span class="oc-value">${escHtml(o.campus || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Hostel / Room</span>
+              <span class="oc-value">${escHtml(
+                [o.hostel, o.room].filter(Boolean).join(' · ') || '—'
+              )}</span>
+            </div>
+            <div class="oc-field full">
+              <span class="oc-label">Products</span>
+              ${buildProductChips(o)}
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Total</span>
+              <span class="oc-value price">${escHtml(fmtPrice(o.total_price))}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Qty</span>
+              <span class="oc-value">${o.quantity ?? '—'}</span>
+            </div>
+          </div>
+          <div class="oc-footer">
+            <span class="oc-footer-meta">${invBadge}</span>
+            ${acceptBtn}
+          </div>
+        </div>`;
+    }
+
+    function renderMyCard(o) {
+      const statusMap = {
+        accepted:         { label: 'Accepted',          cls: 'oc-status-accepted' },
+        preparing:        { label: 'Preparing',          cls: 'oc-status-preparing'},
+        delivering:       { label: 'Out for Delivery',   cls: 'oc-status-out'      },
+        claimed:          { label: 'Accepted',           cls: 'oc-status-accepted' },
+        in_progress:      { label: 'Preparing',          cls: 'oc-status-preparing'},
+        out_for_delivery: { label: 'Out for Delivery',   cls: 'oc-status-out'      },
+        delivered:        { label: 'Delivered',          cls: 'oc-status-delivered'},
+      };
+      const s = statusMap[o.status] || { label: capitalise(o.status || ''), cls: 'oc-status-pending' };
+
+      return `
+        <div class="order-card mine" id="my-order-card-${o.id}">
+          <div class="oc-header">
+            <div class="oc-id">
+              ${escHtml(fmtOrderId(o))}
+              <small>${escHtml(relativeTime(o.accepted_at || o.created_at))}</small>
+            </div>
+            <span class="oc-status-badge ${s.cls}">${escHtml(s.label)}</span>
+          </div>
+          <div class="oc-body">
+            <div class="oc-field">
+              <span class="oc-label">Customer</span>
+              <span class="oc-value">${escHtml(o.customer_name || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Phone</span>
+              <span class="oc-value">${escHtml(o.phone || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Campus</span>
+              <span class="oc-value">${escHtml(o.campus || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Hostel / Room</span>
+              <span class="oc-value">${escHtml(
+                [o.hostel, o.room].filter(Boolean).join(' · ') || '—'
+              )}</span>
+            </div>
+            <div class="oc-field full">
+              <span class="oc-label">Products</span>
+              ${buildProductChips(o)}
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Total</span>
+              <span class="oc-value price">${escHtml(fmtPrice(o.total_price))}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Accepted</span>
+              <span class="oc-value">${relativeTime(o.accepted_at)}</span>
+            </div>
+          </div>
+          <div class="oc-footer">
+            <span class="oc-footer-meta" style="color:var(--text-muted);font-size:0.78rem">
+              Qty: ${o.quantity ?? '—'} · Delivery controls in Deliveries tab
+            </span>
+          </div>
+        </div>`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       RENDER LISTS
+    ════════════════════════════════════════════════════════════════════ */
+    function renderLists() {
+      _renderAvailable();
+      _renderMine();
+    }
+
+    function _renderAvailable() {
+      const wrap = dom.availWrap();
+      if (!wrap) return;
+
+      const all = [..._available, ..._unavailable];
+
+      if (all.length === 0) {
+        wrap.innerHTML = `
+          <div class="empty-state"
+               style="background:var(--surface);border-radius:var(--radius);
+                      box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+            <div class="em-icon">📭</div>
+            <div class="em-title">No available orders</div>
+            <div class="em-sub">New orders will appear here automatically</div>
+          </div>`;
+      } else {
+        // Fulfillable orders first, then unfulfillable (greyed)
+        wrap.innerHTML = [
+          ..._available.map(renderAvailableCard),
+          ..._unavailable.map(renderAvailableCard),
+        ].join('');
+      }
+
+      const pill = dom.availPill();
+      if (pill) {
+        if (_available.length > 0) {
+          pill.textContent    = _available.length;
+          pill.style.display  = 'inline-block';
+        } else {
+          pill.style.display  = 'none';
+        }
+      }
+    }
+
+    function _renderMine() {
+      const wrap = dom.mineWrap();
+      if (!wrap) return;
+
+      if (_mine.length === 0) {
+        wrap.innerHTML = `
+          <div class="empty-state" style="padding:1.5rem 1rem">
+            <div class="em-icon">🎉</div>
+            <div class="em-title">All clear!</div>
+            <div class="em-sub">Orders you accept will appear here</div>
+          </div>`;
+      } else {
+        wrap.innerHTML = _mine.map(renderMyCard).join('');
+      }
+
+      const pill = dom.minePill();
+      if (pill) {
+        if (_mine.length > 0) {
+          pill.textContent   = _mine.length;
+          pill.style.display = 'inline-block';
+        } else {
+          pill.style.display = 'none';
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       INVENTORY CACHE
+       Load the employee's stock once per loadAll() call.
+       Stored as { [productName]: qty } for O(1) lookup during card render.
+       Phase 4 will extend this to product_id keying via order_items.
+    ════════════════════════════════════════════════════════════════════ */
+    async function loadInventoryMap() {
+      if (!currentEmployee) return;
+
+      const { data: rows } = await sb
+        .from('employee_inventory')
+        .select('quantity, products(name)')
+        .eq('employee_id', currentEmployee.id);
+
+      _invMap = {};
+      (rows || []).forEach(r => {
+        if (r.products?.name) _invMap[r.products.name] = r.quantity ?? 0;
+      });
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PARTITION AVAILABLE ORDERS
+       Splits a raw list of pending+unassigned orders into:
+         _available   — employee CAN fulfil (enough stock)
+         _unavailable — employee CANNOT fulfil (shown greyed, no accept btn)
+    ════════════════════════════════════════════════════════════════════ */
+    function partitionOrders(orders) {
+      _available   = [];
+      _unavailable = [];
+      for (const o of orders) {
+        if (inventoryCheck(o).canFulfil) {
+          _available.push(o);
+        } else {
+          _unavailable.push(o);
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       LOAD ALL — main entry point
+    ════════════════════════════════════════════════════════════════════ */
+    async function loadAll() {
+      if (!currentEmployee) return;
+      showSkeleton();
+      dismissError();
+
+      // PART 3 — offline: render the last successfully-loaded lists from
+      // IndexedDB instead of a dead-end error. Nothing else in this
+      // function changes; this is purely an additive branch for a case
+      // that previously just failed the network calls below.
+      if (!navigator.onLine && window.PWAOffline) {
+        const cached = await PWAOffline.getCache('employee_orders_lists');
+        if (cached) {
+          _available = cached.available || [];
+          _mine = cached.mine || [];
+          renderLists();
+          refreshHomeStats();
+          if (typeof Deliveries !== 'undefined') Deliveries.syncFromOrders(_mine);
+          showToast('📡 Offline — showing your last saved orders');
+          return;
+        }
+      }
+
+      // Load inventory map + both order lists in parallel
+      const [, availRes, mineRes] = await Promise.all([
+        loadInventoryMap(),
+
+        sb.from('orders')
+          .select('*')
+          .eq('status', 'pending')
+          .is('assigned_employee_id', null)
+          .order('created_at', { ascending: true }),
+
+        sb.from('orders')
+          .select('*')
+          .eq('assigned_employee_id', currentEmployee.id)
+          .in('status', ['accepted', 'preparing', 'delivering', 'claimed', 'in_progress', 'out_for_delivery'])
+          .order('accepted_at', { ascending: false }),
+      ]);
+
+      if (availRes.error) {
+        showError('Could not load orders: ' + availRes.error.message);
+      } else {
+        partitionOrders(availRes.data || []);
+      }
+
+      if (mineRes.error) {
+        showError('Could not load your active orders: ' + mineRes.error.message);
+      } else {
+        _mine = mineRes.data || [];
+      }
+
+      renderLists();
+      refreshHomeStats();
+
+      // PART 3 — write-through cache so the next offline visit has
+      // something real to show (see the read branch above).
+      if (window.PWAOffline && !availRes.error && !mineRes.error) {
+        PWAOffline.saveCache('employee_orders_lists', { available: _available, mine: _mine });
+      }
+
+      // Also sync the Deliveries module state so its page is never stale
+      if (typeof Deliveries !== 'undefined') Deliveries.syncFromOrders(_mine);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       VALIDATE — all pre-conditions before accepting
+    ════════════════════════════════════════════════════════════════════ */
+    async function validate(orderId) {
+      // 1. Employee account must be active
+      if (currentEmployee.status !== 'active') {
+        return 'Your account is not active. Please contact your manager.';
+      }
+
+      // 2. Re-fetch the live order row — confirms it hasn't been taken
+      const { data: order, error: orderErr } = await sb
+        .from('orders')
+        .select('id, status, assigned_employee_id, product, quantity')
+        .eq('id', orderId)
+        .maybeSingle();  // maybeSingle returns null (not error) when 0 rows
+
+      if (orderErr) return 'Could not verify order: ' + orderErr.message;
+      if (!order)   return 'Order not found. It may have been deleted.';
+      if (order.status !== 'pending' || order.assigned_employee_id !== null) {
+        return 'This order was just accepted by another employee.';
+      }
+
+      // 3. Inventory check against live employee stock
+      //    Phase 4 will loop over order_items; for now check the single product column
+      if (order.product && order.quantity) {
+        const held   = _invMap[order.product] ?? 0;
+        const needed = order.quantity ?? 1;
+        if (held < needed) {
+          return `Not enough stock. You have ${held} × ${order.product} but need ${needed}. Ask your manager to restock.`;
+        }
+      }
+
+      return null; // all checks passed
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       ACCEPT — atomic claim with race-condition guard
+    ════════════════════════════════════════════════════════════════════ */
+    async function accept(orderId) {
+      if (_accepting[orderId]) return; // already in-flight
+      _accepting[orderId] = true;
+      dismissError();
+
+      const btn = document.getElementById(`accept-btn-${orderId}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML =
+          '<span class="spinner" style="border-top-color:white;' +
+          'border-color:rgba(255,255,255,0.3)"></span> Checking…';
+      }
+
+      // Pre-flight validation
+      const validationError = await validate(orderId);
+      if (validationError) {
+        showError(validationError);
+        if (btn) { btn.disabled = false; btn.innerHTML = '✅ Accept Order'; }
+        delete _accepting[orderId];
+        return;
+      }
+
+      if (btn) btn.innerHTML =
+        '<span class="spinner" style="border-top-color:white;' +
+        'border-color:rgba(255,255,255,0.3)"></span> Accepting…';
+
+      // ── Atomic write ────────────────────────────────────────────────
+      // The WHERE clause (status=pending AND assigned_employee_id IS NULL)
+      // acts as an optimistic lock. If another employee accepted between
+      // our validate() call and now, 0 rows match → .maybeSingle() returns
+      // null, we handle gracefully instead of throwing.
+      const now = new Date().toISOString();
+      const { data: updated, error: updateErr } = await sb
+        .from('orders')
+        .update({
+          assigned_employee_id: currentEmployee.id,
+          accepted_at:          now,
+          status:               'accepted',
+        })
+        .eq('id', orderId)
+        .eq('status', 'pending')
+        .is('assigned_employee_id', null)   // ← optimistic lock
+        .select()
+        .maybeSingle();                      // safe — won't throw on 0 rows
+
+      if (updateErr) {
+        showError('Could not accept order: ' + updateErr.message);
+        if (btn) { btn.disabled = false; btn.innerHTML = '✅ Accept Order'; }
+        delete _accepting[orderId];
+        return;
+      }
+
+      if (!updated) {
+        // 0 rows updated — another employee claimed it between validate() and now
+        showError('Someone else just accepted that order. It has been removed from your list.');
+        _available   = _available.filter(o => o.id !== orderId);
+        _unavailable = _unavailable.filter(o => o.id !== orderId);
+        renderLists();
+        delete _accepting[orderId];
+        return;
+      }
+
+      // ── Success ─────────────────────────────────────────────────────
+      // 1. Remove from available / unavailable lists
+      _available   = _available.filter(o => o.id !== orderId);
+      _unavailable = _unavailable.filter(o => o.id !== orderId);
+
+      // 2. Add to my active orders
+      _mine = [updated, ..._mine];
+
+      // 3. Re-render orders page
+      renderLists();
+
+      // 4. Sync Deliveries module so it shows the new order immediately
+      if (typeof Deliveries !== 'undefined') Deliveries.syncFromOrders(_mine);
+
+      // 5. Update home summary cards
+      refreshHomeStats();
+
+      // 6. Toast
+      showToast('✅ Order accepted! Go to Deliveries to start your run.');
+
+      delete _accepting[orderId];
+      // Note: Admin dashboard updates automatically via Supabase Realtime
+      // (the admin realtime channel already listens for UPDATE events)
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       REALTIME
+       Single channel on the orders table.
+       - INSERT: new pending order → re-check inventory → add to correct list
+       - UPDATE: order claimed/changed → remove from available, update mine
+       - DELETE: order removed → clean both lists
+    ════════════════════════════════════════════════════════════════════ */
+    function startRealtime() {
+      if (_realtimeCh) return; // already subscribed
+
+      _realtimeCh = sb
+        .channel('orders-live')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders' },
+          async (payload) => {
+            const { eventType, new: newRow, old: oldRow } = payload;
+            const orderId = newRow?.id ?? oldRow?.id;
+
+            if (eventType === 'INSERT') {
+              // Only care about pending + unassigned orders
+              if (newRow.status !== 'pending' || newRow.assigned_employee_id !== null) return;
+              // Skip if already in our list (de-dup guard)
+              const alreadyHave =
+                _available.find(o => o.id === orderId) ||
+                _unavailable.find(o => o.id === orderId);
+              if (alreadyHave) return;
+
+              // Check inventory for the new order without reloading everything
+              await loadInventoryMap();
+              if (inventoryCheck(newRow).canFulfil) {
+                _available = [..._available, newRow]
+                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+              } else {
+                _unavailable = [..._unavailable, newRow]
+                  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+              }
+
+              if (_isOrdersPageActive()) renderLists();
+              refreshHomeStats();
+            }
+
+            if (eventType === 'UPDATE') {
+              const nowAssigned    = newRow.assigned_employee_id !== null;
+              const assignedToMe   = newRow.assigned_employee_id === currentEmployee?.id;
+
+              // Remove from available/unavailable if now claimed by anyone
+              if (nowAssigned) {
+                _available   = _available.filter(o => o.id !== orderId);
+                _unavailable = _unavailable.filter(o => o.id !== orderId);
+              }
+
+              // Update my-orders list
+              const myIdx = _mine.findIndex(o => o.id === orderId);
+              if (myIdx >= 0) {
+                _mine[myIdx] = newRow;
+              } else if (assignedToMe) {
+                // Realtime arrived before accept()'s response — add it
+                _mine = [newRow, ..._mine];
+              }
+
+              if (_isOrdersPageActive()) renderLists();
+              if (typeof Deliveries !== 'undefined') Deliveries.syncFromOrders(_mine);
+              refreshHomeStats();
+            }
+
+            if (eventType === 'DELETE') {
+              _available   = _available.filter(o => o.id !== orderId);
+              _unavailable = _unavailable.filter(o => o.id !== orderId);
+              _mine        = _mine.filter(o => o.id !== orderId);
+
+              if (_isOrdersPageActive()) renderLists();
+              if (typeof Deliveries !== 'undefined') Deliveries.syncFromOrders(_mine);
+              refreshHomeStats();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    function stopRealtime() {
+      if (_realtimeCh) {
+        sb.removeChannel(_realtimeCh);
+        _realtimeCh = null;
+      }
+    }
+
+    function _isOrdersPageActive() {
+      return document.getElementById('page-orders')?.classList.contains('active');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PUBLIC API
+       Only expose what other modules and HTML need to call.
+       Phase 4 will add: Orders.deductInventory(orderId)
+    ════════════════════════════════════════════════════════════════════ */
+    return {
+      loadAll,
+      accept,
+      dismissError,
+      startRealtime,
+      stopRealtime,
+      // Expose mine list for Deliveries module to sync from
+      getMine: () => _mine,
+    };
+
+  })(); // end Orders module
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     DELIVERIES MODULE
+     Shows the employee's accepted/in-progress orders with delivery controls.
+     Phase 3 Step 3 will add proof-of-delivery photo upload.
+  ════════════════════════════════════════════════════════════════════════ */
+  const Deliveries = (() => {
+
+    /* ═══════════════════════════════════════════════════════════════════
+       WORKFLOW DEFINITION
+       Pending → Accepted → Preparing → Delivering → Delivered
+       "Pending" lives on the Orders page (before an employee accepts it).
+       Everything from "accepted" onward is managed here. Steps can never
+       be skipped — updateOrderStatus() only writes a transition when the
+       order's current DB status matches the expected previous step.
+       (Unchanged from Phase 3 Step 3 — Phase 3.5 only adds UI polish.)
+    ════════════════════════════════════════════════════════════════════ */
+    const STATUS_CONFIG = {
+      accepted:   { label: 'Accepted',          badgeClass: 'oc-status-accepted',  next: 'preparing'  },
+      preparing:  { label: 'Preparing',         badgeClass: 'oc-status-preparing', next: 'delivering' },
+      delivering: { label: 'Out For Delivery',  badgeClass: 'oc-status-out',       next: 'delivered'  },
+      delivered:  { label: 'Delivered',         badgeClass: 'oc-status-delivered', next: null         },
+      // Legacy statuses from before this workflow existed — displayed read-only
+      // so old records still render sensibly; new writes never use these.
+      claimed:          { label: 'Accepted',         badgeClass: 'oc-status-accepted', next: 'preparing'  },
+      in_progress:      { label: 'Preparing',        badgeClass: 'oc-status-preparing',next: 'delivering' },
+      out_for_delivery: { label: 'Out For Delivery', badgeClass: 'oc-status-out',      next: 'delivered'  },
+    };
+    const ACTIVE_STATUSES = ['accepted', 'preparing', 'delivering', 'claimed', 'in_progress', 'out_for_delivery'];
+
+    // Maps each filter chip to the raw status values (current + legacy) it covers
+    const FILTER_GROUPS = {
+      accepted:   ['accepted', 'claimed'],
+      preparing:  ['preparing', 'in_progress'],
+      delivering: ['delivering', 'out_for_delivery'],
+      delivered:  ['delivered'],
+    };
+
+    /* ═══════════════════════════════════════════════════════════════════
+       STATE
+    ════════════════════════════════════════════════════════════════════ */
+    let _orders     = [];    // every order assigned to this employee in the workflow
+    let _busy       = {};    // { [orderId]: true } — button double-tap guard
+    let _realtimeCh = null;  // this module's own Supabase realtime channel
+    let _pendingConfirmId = null; // order awaiting "Confirm Delivery" in the modal
+    let _detailsOrderId   = null; // order currently shown in the details modal
+    let _filterStatus = 'all';    // active filter chip
+    let _searchQuery   = '';      // lower-cased search text
+    let _lastLoadFailed = false;  // drives the retry empty-state
+
+    const wrap = () => document.getElementById('deliveries-wrap');
+
+    /* ═══════════════════════════════════════════════════════════════════
+       FORMAT HELPERS
+    ════════════════════════════════════════════════════════════════════ */
+    function fmtPrice(v) {
+      if (v == null) return '—';
+      return 'KSh ' + Number(v).toLocaleString();
+    }
+    function fmtOrderId(o) {
+      if (o.order_id) return '#' + String(o.order_id).slice(0, 8).toUpperCase();
+      return '#' + String(o.id).padStart(5, '0');
+    }
+    function fmtDateTime(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+    function buildProductChips(o) {
+      if (!o.product) return '<span class="oc-value" style="color:var(--text-muted)">—</span>';
+      return `<div class="oc-products">
+        <span class="oc-product-chip">${escHtml(o.product)} × ${o.quantity ?? 1}</span>
+      </div>`;
+    }
+    function setText(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       SKELETON
+    ════════════════════════════════════════════════════════════════════ */
+    function skeleton() {
+      wrap().innerHTML = `
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-wide"></div><div class="sk-line sk-mid"></div><div class="sk-line sk-narrow"></div>
+        </div>
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-mid"></div><div class="sk-line sk-wide"></div><div class="sk-line sk-narrow"></div>
+        </div>
+        <div class="order-card order-card-skeleton">
+          <div class="sk-line sk-narrow"></div><div class="sk-line sk-wide"></div><div class="sk-line sk-mid"></div>
+        </div>`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       CARD RENDERER — simplified per Phase 3.5 (full detail lives behind
+       the Order Details modal now). Shows exactly one action button for
+       the order's current step — never more than one workflow action.
+    ════════════════════════════════════════════════════════════════════ */
+    function renderCard(o) {
+      const id = String(o.id);
+      const cfg = STATUS_CONFIG[o.status] || { label: capitalise(o.status || ''), badgeClass: 'oc-status-accepted', next: null };
+      const isDelivered  = o.status === 'delivered';
+      const isPreparing  = o.status === 'preparing' || o.status === 'in_progress';
+      const isDelivering = o.status === 'delivering' || o.status === 'out_for_delivery';
+      const busy = !!_busy[id];
+      const spinner = '<span class="spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3)"></span>';
+
+      let footer;
+      if (isDelivered) {
+        footer = `<span class="btn-delivered-static">✓ Delivered Successfully</span>`;
+      } else if (isDelivering) {
+        footer = `<span class="oc-footer-info">En route…</span>
+          <button class="btn-mark-delivered" id="del-action-${id}" onclick="event.stopPropagation(); Deliveries.markDelivered(${id})" ${busy ? 'disabled' : ''}>
+            ${busy ? spinner : '✅ Mark Delivered'}
+          </button>`;
+      } else if (isPreparing) {
+        footer = `<span class="oc-footer-info">Getting the order ready…</span>
+          <button class="btn-start-delivery" id="del-action-${id}" onclick="event.stopPropagation(); Deliveries.startDelivery(${id})" ${busy ? 'disabled' : ''}>
+            ${busy ? spinner : '🛵 Start Delivery'}
+          </button>`;
+      } else {
+        // accepted (or legacy "claimed")
+        footer = `<span class="oc-footer-info">Ready to prep</span>
+          <button class="btn-start-preparing" id="del-action-${id}" onclick="event.stopPropagation(); Deliveries.startPreparing(${id})" ${busy ? 'disabled' : ''}>
+            ${busy ? spinner : '👨‍🍳 Start Preparing'}
+          </button>`;
+      }
+
+      const location  = [o.hostel, o.room].filter(Boolean).join(' · ') || (o.campus || '—');
+      const itemCount = o.quantity ?? 1;
+
+      return `
+        <div class="order-card mine${isDelivered ? ' delivery-readonly' : ''}" id="del-card-${id}" data-order-id="${id}" onclick="Deliveries.openDetails(${id})">
+          <div class="oc-header">
+            <div class="oc-id">
+              ${escHtml(fmtOrderId(o))}
+              <small>${escHtml(relativeTime(o.created_at))}</small>
+            </div>
+            <span class="oc-status-badge ${cfg.badgeClass}">${escHtml(cfg.label)}</span>
+          </div>
+          <div class="oc-body">
+            <div class="oc-field">
+              <span class="oc-label">Customer</span>
+              <span class="oc-value">${escHtml(o.customer_name || '—')}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Location</span>
+              <span class="oc-value">${escHtml(location)}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Items</span>
+              <span class="oc-value">${itemCount} item${itemCount == 1 ? '' : 's'}</span>
+            </div>
+            <div class="oc-field">
+              <span class="oc-label">Total</span>
+              <span class="oc-value price">${escHtml(fmtPrice(o.total_price))}</span>
+            </div>
+          </div>
+          <div class="oc-footer">${footer}</div>
+        </div>`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       SEARCH + FILTER
+    ════════════════════════════════════════════════════════════════════ */
+    function matchesFilter(o) {
+      if (_filterStatus === 'all') return true;
+      const group = FILTER_GROUPS[_filterStatus] || [];
+      return group.includes(o.status);
+    }
+    function matchesSearch(o) {
+      if (!_searchQuery) return true;
+      const q = _searchQuery;
+      return (
+        (o.customer_name || '').toLowerCase().includes(q) ||
+        (o.phone || '').toLowerCase().includes(q) ||
+        fmtOrderId(o).toLowerCase().includes(q) ||
+        String(o.id).includes(q)
+      );
+    }
+    function getFilteredOrders() {
+      return _orders.filter(o => matchesFilter(o) && matchesSearch(o));
+    }
+
+    function setFilter(status) {
+      _filterStatus = status;
+      document.querySelectorAll('#del-filter-chips .del-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.filter === status);
+      });
+      renderAll();
+    }
+
+    function onSearchInput(value) {
+      _searchQuery = (value || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('del-search-clear');
+      if (clearBtn) clearBtn.style.display = _searchQuery ? 'flex' : 'none';
+      renderAll();
+    }
+
+    function clearSearch() {
+      _searchQuery = '';
+      const input = document.getElementById('del-search-input');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('del-search-clear');
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderAll();
+    }
+
+    function resetSearchAndFilter() {
+      clearSearch();
+      setFilter('all');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       EMPTY STATES
+    ════════════════════════════════════════════════════════════════════ */
+    function emptyStateNoOrders() {
+      return `
+        <div class="empty-state" style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+          <div class="em-icon">🛵</div>
+          <div class="em-title">No deliveries yet</div>
+          <div class="em-sub">Orders you accept will appear here once ready</div>
+          <button class="btn btn-outline" style="margin-top:1rem" onclick="navigate('orders')">📋 Browse Available Orders</button>
+        </div>`;
+    }
+    function emptyStateNoResults() {
+      return `
+        <div class="empty-state" style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+          <div class="em-icon">🔎</div>
+          <div class="em-title">No matching deliveries</div>
+          <div class="em-sub">Try a different search term or filter</div>
+          <button class="btn btn-outline" style="margin-top:1rem" onclick="Deliveries.resetSearchAndFilter()">Clear search &amp; filters</button>
+        </div>`;
+    }
+    function emptyStateError() {
+      return `
+        <div class="empty-state" style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+          <div class="em-icon">⚠️</div>
+          <div class="em-title">Couldn't load your deliveries</div>
+          <div class="em-sub">Please check your connection and try again.</div>
+          <button class="btn btn-outline" style="margin-top:1rem" onclick="Deliveries.load()">↻ Retry</button>
+        </div>`;
+    }
+    function emptyStateOffline() {
+      return `
+        <div class="empty-state" style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+          <div class="em-icon">📡</div>
+          <div class="em-title">You're offline</div>
+          <div class="em-sub">Reconnect to the internet and try again.</div>
+          <button class="btn btn-outline" style="margin-top:1rem" onclick="Deliveries.load()">↻ Retry</button>
+        </div>`;
+    }
+
+    function renderAll() {
+      const w = wrap();
+      if (!w) return;
+
+      if (_lastLoadFailed) return; // error/offline state already rendered by load()
+
+      const filtered = getFilteredOrders();
+
+      if (_orders.length === 0) {
+        w.innerHTML = emptyStateNoOrders();
+      } else if (filtered.length === 0) {
+        w.innerHTML = emptyStateNoResults();
+      } else {
+        w.innerHTML = filtered.map(renderCard).join('');
+      }
+      updateStats(); // stats always reflect the full, unfiltered list
+    }
+
+    function updateStats() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const accepted   = _orders.filter(o => o.status === 'accepted' || o.status === 'claimed').length;
+      const preparing  = _orders.filter(o => o.status === 'preparing' || o.status === 'in_progress').length;
+      const delivering = _orders.filter(o => o.status === 'delivering' || o.status === 'out_for_delivery').length;
+      const doneToday  = _orders.filter(o => {
+        if (o.status !== 'delivered') return false;
+        const ts = o.delivered_at || o.completed_at;
+        return ts && new Date(ts) >= today;
+      }).length;
+
+      const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setEl('del-count-accepted',   accepted);
+      setEl('del-count-preparing',  preparing);
+      setEl('del-count-delivering', delivering);
+      setEl('del-count-done',       doneToday);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       LOAD — main entry point, full fetch from Supabase
+    ════════════════════════════════════════════════════════════════════ */
+    async function load() {
+      if (!currentEmployee) return;
+      skeleton();
+      _lastLoadFailed = false;
+
+      if (!navigator.onLine) {
+        // PART 3 — try the last saved snapshot before giving up.
+        if (window.PWAOffline) {
+          const cached = await PWAOffline.getCache('deliveries_orders');
+          if (cached) {
+            _orders = cached;
+            renderAll();
+            showToast('📡 Offline — showing your last saved deliveries');
+            return;
+          }
+        }
+        _lastLoadFailed = true;
+        wrap().innerHTML = emptyStateOffline();
+        return;
+      }
+
+      try {
+        const { data: orders, error } = await sb
+          .from('orders')
+          .select('*')
+          .eq('assigned_employee_id', currentEmployee.id)
+          .in('status', [...ACTIVE_STATUSES, 'delivered'])
+          .order('accepted_at', { ascending: false });
+
+        if (error) {
+          console.error('Deliveries load error:', error);
+          _lastLoadFailed = true;
+          wrap().innerHTML = emptyStateError();
+          return;
+        }
+
+        _orders = orders || [];
+        renderAll();
+        if (window.PWAOffline) PWAOffline.saveCache('deliveries_orders', _orders);
+      } catch (e) {
+        console.error('Deliveries load exception:', e);
+        _lastLoadFailed = true;
+        wrap().innerHTML = emptyStateError();
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PHASE 4.2 — AUTOMATIC INVENTORY DEDUCTION
+       Fires only on a confirmed Mark Delivered. Deducts from the assigned
+       employee's own stock (employee_inventory) — never the main
+       warehouse inventory, which was already reduced at distribution
+       time. order_items is the source of truth for what/how much to
+       deduct; the legacy orders.product / orders.quantity columns are
+       never read here.
+    ════════════════════════════════════════════════════════════════════ */
+
+    /** Checks the employee's current stock against every order_items row.
+     *  Returns { valid, insufficient, rows } where `rows` are the live
+     *  employee_inventory rows (reused afterwards so deduction doesn't
+     *  need to re-fetch, closing the race window between check and write).
+     */
+    async function validateInventory(employeeId, items) {
+      const productIds = items.map(i => i.product_id);
+
+      const { data: rows, error } = await sb
+        .from('employee_inventory')
+        .select('id, product_id, quantity')
+        .eq('employee_id', employeeId)
+        .in('product_id', productIds);
+
+      if (error) {
+        console.error('validateInventory error:', error);
+        return { valid: false, insufficient: [], rows: [], error: 'Could not verify your stock levels. Please try again.' };
+      }
+
+      const stockMap = {};
+      (rows || []).forEach(r => { stockMap[r.product_id] = r; });
+
+      const insufficient = [];
+      for (const item of items) {
+        const available = stockMap[item.product_id]?.quantity ?? 0;
+        if (item.quantity > available) {
+          insufficient.push({
+            productId: item.product_id,
+            name: item.products?.name || `Product #${item.product_id}`,
+            needed: item.quantity,
+            available,
+          });
+        }
+      }
+
+      return { valid: insufficient.length === 0, insufficient, rows: rows || [] };
+    }
+
+    /** Reduces employee_inventory for each item, guarded by an
+     *  optimistic-concurrency check against the quantity just read in
+     *  validateInventory (so two near-simultaneous deliveries can't
+     *  double-spend the same stock). Stops and reports the first failure;
+     *  the caller is responsible for rolling back `applied` on failure. */
+    async function deductEmployeeInventory(employeeId, items, existingRows) {
+      const rowMap = {};
+      (existingRows || []).forEach(r => { rowMap[r.product_id] = r; });
+
+      const applied = [];
+      for (const item of items) {
+        const row = rowMap[item.product_id];
+        if (!row) {
+          await rollbackEmployeeInventory(applied);
+          return { success: false, error: `No stock record found for "${item.products?.name || 'a product'}".` };
+        }
+
+        const newQty = row.quantity - item.quantity;
+        const { data, error } = await sb
+          .from('employee_inventory')
+          .update({ quantity: newQty, updated_at: new Date().toISOString() })
+          .eq('id', row.id)
+          .eq('quantity', row.quantity) // ← guards against a stale read
+          .select()
+          .maybeSingle();
+
+        if (error || !data) {
+          await rollbackEmployeeInventory(applied);
+          return { success: false, error: `Your stock for "${item.products?.name || 'a product'}" changed just now — please try again.` };
+        }
+
+        applied.push({ rowId: row.id, prevQty: row.quantity });
+      }
+
+      return { success: true, applied };
+    }
+
+    /** Best-effort compensation if a later item in the same delivery fails
+     *  to deduct. Restores every employee_inventory row already touched. */
+    async function rollbackEmployeeInventory(applied) {
+      for (const step of (applied || []).slice().reverse()) {
+        try {
+          await sb.from('employee_inventory').update({ quantity: step.prevQty }).eq('id', step.rowId);
+        } catch (e) {
+          console.error('Inventory rollback step failed — manual reconciliation may be needed:', step, e);
+        }
+      }
+    }
+
+    /** Logs one stock movement so every change is auditable. Reused by
+     *  any future feature that touches inventory (matches the shape used
+     *  by the Stock Distribution module's own writer). */
+    async function recordInventoryTransaction(employeeId, productId, quantityChange, reason, opts = {}) {
+      const { orderId = null, performedBy = null } = opts;
+      return sb.from('inventory_transactions').insert({
+        employee_id: employeeId,
+        product_id: productId,
+        quantity_change: quantityChange,
+        reason,
+        order_id: orderId,
+        performed_by: performedBy,
+      });
+    }
+
+    /**
+     * completeDelivery — the single reusable entry point for turning a
+     * "delivering" order into "delivered": validates the employee's stock
+     * against order_items, deducts it, logs the movement, and only then
+     * flips the order's status. If anything before the status flip fails,
+     * nothing is left half-applied; if the status flip itself loses a
+     * race (order changed elsewhere), the stock deduction is unwound so
+     * the order is never marked delivered without the stock actually
+     * having moved.
+     *
+     * @returns { success: true, data } | { success: false, error, staleOrder? }
+     */
+    async function completeDelivery(orderId) {
+      if (!navigator.onLine) {
+        return { success: false, error: "You're offline. Check your connection and try again." };
+      }
+
+      const employeeId = currentEmployee.id;
+
+      // 1. order_items is the source of truth — never orders.product/quantity
+      const { data: items, error: itemsErr } = await sb
+        .from('order_items')
+        .select('product_id, quantity, products(name)')
+        .eq('order_id', orderId);
+
+      if (itemsErr) {
+        console.error('completeDelivery order_items fetch error:', itemsErr);
+        return { success: false, error: 'Could not load this order\'s items. Please try again.' };
+      }
+      if (!items || items.length === 0) {
+        return { success: false, error: 'This order has no items on record — cannot complete delivery.' };
+      }
+
+      // 2. Validate — every product must have enough stock in the
+      //    employee's own inventory before anything is written.
+      const validation = await validateInventory(employeeId, items);
+      if (validation.error) {
+        return { success: false, error: validation.error };
+      }
+      if (!validation.valid) {
+        const list = validation.insufficient
+          .map(i => `${i.name} (need ${i.needed}, have ${i.available})`)
+          .join(', ');
+        return { success: false, error: `Not enough stock to complete delivery — ${list}` };
+      }
+
+      // 3. Deduct the employee's stock for every item.
+      const deduction = await deductEmployeeInventory(employeeId, items, validation.rows);
+      if (!deduction.success) {
+        return { success: false, error: deduction.error };
+      }
+
+      // 4. Log each movement. Non-fatal if it fails — the real stock
+      //    change already succeeded; only the audit trail would be
+      //    incomplete, so warn rather than unwind real inventory.
+      for (const item of items) {
+        const { error: txnErr } = await recordInventoryTransaction(
+          employeeId, item.product_id, -item.quantity, 'order_delivery',
+          { orderId, performedBy: employeeId }
+        );
+        if (txnErr) {
+          console.warn('Inventory transaction log failed (non-fatal):', txnErr);
+        }
+      }
+
+      // 5. Only now flip the order to delivered. updateOrderStatus's own
+      //    guard (status must still be 'delivering') protects against a
+      //    race with another tab/device.
+      const now = new Date().toISOString();
+      const statusResult = await updateOrderStatus(orderId, 'delivering', 'delivered',
+        { completed_at: now, delivered_at: now });
+
+      if (statusResult.error) {
+        // Delivery didn't actually complete — put the stock back.
+        await rollbackEmployeeInventory(deduction.applied);
+        return { success: false, error: statusResult.error, staleOrder: true };
+      }
+
+      return { success: true, data: statusResult.data };
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       INVENTORY DEDUCTION — LEGACY NO-OP HOOK
+       Kept only so nothing else in the file that still calls this needs
+       touching; all real deduction now happens inside completeDelivery()
+       above, driven by order_items, before the order is even marked
+       delivered.
+    ════════════════════════════════════════════════════════════════════ */
+    function handleInventoryDeduction(order) {
+      // Intentionally a no-op — see completeDelivery() for Phase 4.2 logic.
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       updateOrderStatus — the single reusable, validated status writer.
+       Refuses to write unless the order's live DB status still matches
+       `fromStatus`, which is both our step-skipping guard and an
+       optimistic-concurrency lock against races with realtime/other tabs.
+       Error messages here are always user-friendly; technical detail is
+       logged to the console instead of surfaced in the UI.
+    ════════════════════════════════════════════════════════════════════ */
+    async function updateOrderStatus(orderId, fromStatus, toStatus, extraFields) {
+      // PART 4/PART 3 — deliberately NOT queued for offline replay, unlike
+      // the notification mark-as-read action elsewhere in this phase.
+      // This write is guarded by .eq('status', fromStatus) as an
+      // optimistic-concurrency lock — replaying a queued transition
+      // later could silently no-op against a since-changed order, or
+      // (worse, for confirmMarkDelivered's inventory deduction) apply a
+      // stock change against a stale state. Part 4 asks this phase
+      // "prepare architecture for future offline-first synchronization,"
+      // not implement it for order-critical writes — the honest, safe
+      // scope here is: fail fast with a clear message now, tackle
+      // conflict-safe replay for this specific action as its own future
+      // phase rather than guessing at it here.
+      if (!navigator.onLine) {
+        return { error: "You're offline. Check your connection and try again." };
+      }
+      try {
+        const { data, error } = await sb
+          .from('orders')
+          .update({ status: toStatus, ...extraFields })
+          .eq('id', orderId)
+          .eq('assigned_employee_id', currentEmployee.id)
+          .eq('status', fromStatus) // ← guards against skipping steps / stale UI
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.error('updateOrderStatus error:', error);
+          if (error.code === 'PGRST301' || /permission/i.test(error.message || '')) {
+            return { error: "You don't have permission to update this order." };
+          }
+          return { error: 'Something went wrong updating this order. Please try again.' };
+        }
+        if (!data) {
+          return { error: "This order's status just changed — refreshing your list." };
+        }
+        return { data };
+      } catch (e) {
+        console.error('updateOrderStatus exception:', e);
+        return { error: 'Network error. Please check your connection and try again.' };
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       Shared transition runner — button state, toast, re-render, sync
+    ════════════════════════════════════════════════════════════════════ */
+    async function runTransition(orderId, fromStatus, toStatus, extraFields, successMsg) {
+      const id = String(orderId);
+      if (_busy[id]) return null;
+      _busy[id] = true;
+      renderAll(); // shows spinner on the active card's button
+
+      const result = await updateOrderStatus(orderId, fromStatus, toStatus, extraFields);
+      delete _busy[id];
+
+      if (result.error) {
+        showToast('⚠️ ' + result.error);
+        await load(); // resync with source of truth in case status moved elsewhere
+        return null;
+      }
+
+      const idx = _orders.findIndex(o => String(o.id) === id);
+      if (idx >= 0) _orders[idx] = result.data;
+      renderAll();
+      refreshHomeStats();
+      showToast(successMsg);
+
+      // Keep an open details modal for this order in sync with the new status
+      if (_detailsOrderId === id) populateDetailsModal(result.data);
+
+      return result.data;
+    }
+
+    async function startPreparing(orderId) {
+      await runTransition(orderId, 'accepted', 'preparing',
+        { preparation_started_at: new Date().toISOString() },
+        '👨‍🍳 Preparing started!');
+    }
+
+    async function startDelivery(orderId) {
+      await runTransition(orderId, 'preparing', 'delivering',
+        { delivery_started_at: new Date().toISOString() },
+        '🛵 Delivery started!');
+    }
+
+    // markDelivered() never writes directly — it opens the confirm modal.
+    // confirmMarkDelivered() (wired to the modal's "Confirm Delivery" button)
+    // performs the actual transition.
+    function markDelivered(orderId) {
+      _pendingConfirmId = String(orderId);
+      const modal = document.getElementById('confirm-delivery-modal');
+      if (modal) modal.classList.add('open');
+    }
+
+    function closeConfirmModal() {
+      _pendingConfirmId = null;
+      const modal = document.getElementById('confirm-delivery-modal');
+      if (modal) modal.classList.remove('open');
+    }
+
+    function handleModalClick(e) {
+      if (e.target === document.getElementById('confirm-delivery-modal')) closeConfirmModal();
+    }
+
+    async function confirmMarkDelivered() {
+      const orderId = _pendingConfirmId;
+      closeConfirmModal();
+      if (!orderId) return;
+
+      const id = String(orderId);
+      if (_busy[id]) return;
+      _busy[id] = true;
+      renderAll(); // shows spinner on the active card's button
+
+      const result = await completeDelivery(orderId);
+      delete _busy[id];
+
+      if (!result.success) {
+        showToast('⚠️ ' + result.error, 5000);
+        if (result.staleOrder) await load(); // resync with source of truth
+        renderAll();
+        return;
+      }
+
+      const idx = _orders.findIndex(o => String(o.id) === id);
+      if (idx >= 0) _orders[idx] = result.data;
+      renderAll();
+      refreshHomeStats();
+      showToast('✅ Order marked delivered!');
+
+      // Keep an open details modal for this order in sync with the new status
+      if (_detailsOrderId === id) populateDetailsModal(result.data);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       ORDER DETAILS MODAL — Phase 3.5
+       Pure viewer: shows full order info, the Call Customer action, and a
+       progress timeline. It never writes to the database itself — all
+       workflow actions stay on the card underneath, so delivery logic is
+       untouched.
+    ════════════════════════════════════════════════════════════════════ */
+    function openDetails(orderId) {
+      const o = _orders.find(x => String(x.id) === String(orderId));
+      if (!o) return;
+      _detailsOrderId = String(orderId);
+      populateDetailsModal(o);
+      document.getElementById('order-details-modal')?.classList.add('open');
+    }
+
+    function closeDetailsModal() {
+      _detailsOrderId = null;
+      document.getElementById('order-details-modal')?.classList.remove('open');
+    }
+
+    function handleDetailsModalClick(e) {
+      if (e.target === document.getElementById('order-details-modal')) closeDetailsModal();
+    }
+
+    function populateDetailsModal(o) {
+      const cfg = STATUS_CONFIG[o.status] || { label: capitalise(o.status || ''), badgeClass: 'oc-status-accepted' };
+
+      setText('od-order-id', fmtOrderId(o));
+      const badge = document.getElementById('od-status-badge');
+      if (badge) { badge.textContent = cfg.label; badge.className = 'oc-status-badge ' + cfg.badgeClass; }
+
+      setText('od-customer-name', o.customer_name || '—');
+      setText('od-phone', o.phone || '—');
+      setText('od-campus', o.campus || '—');
+      setText('od-hostel', o.hostel || '—');
+      setText('od-room', o.room || '—');
+      setText('od-quantity', o.quantity ?? '—');
+      setText('od-total', fmtPrice(o.total_price));
+
+      const productsEl = document.getElementById('od-products');
+      if (productsEl) productsEl.innerHTML = buildProductChips(o);
+
+      // "Call Customer" — tel: link opens the native phone dialer on mobile
+      const callBtn = document.getElementById('od-call-btn');
+      if (callBtn) {
+        if (o.phone) {
+          callBtn.href = 'tel:' + String(o.phone).replace(/[^0-9+]/g, '');
+          callBtn.style.display = 'flex';
+        } else {
+          callBtn.style.display = 'none';
+        }
+      }
+
+      const tlEl = document.getElementById('od-timeline');
+      if (tlEl) tlEl.innerHTML = renderTimeline(o);
+    }
+
+    function renderTimeline(o) {
+      const normalizedStatus = { claimed: 'accepted', in_progress: 'preparing', out_for_delivery: 'delivering' }[o.status] || o.status;
+      const order = ['accepted', 'preparing', 'delivering', 'delivered'];
+      const currentIdx = order.indexOf(normalizedStatus);
+
+      const steps = [
+        { label: 'Accepted',   ts: o.accepted_at },
+        { label: 'Preparing',  ts: o.preparation_started_at },
+        { label: 'Delivering', ts: o.delivery_started_at },
+        { label: 'Delivered',  ts: o.delivered_at || o.completed_at },
+      ];
+
+      return steps.map((s, i) => {
+        const reached  = i <= currentIdx;
+        const isCurrent = i === currentIdx;
+        return `
+          <div class="od-tl-item ${reached ? 'reached' : ''} ${isCurrent ? 'current' : ''}">
+            <div class="od-tl-dot"></div>
+            <div class="od-tl-body">
+              <div class="od-tl-label">${escHtml(s.label)}</div>
+              <div class="od-tl-time">${s.ts ? escHtml(fmtDateTime(s.ts)) : (reached ? '—' : 'Pending')}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       subscribeToRealtimeOrders — this module's own realtime channel,
+       scoped to orders assigned to the logged-in employee. Keeps the
+       Deliveries page, its stats strip, and the Home dashboard in sync
+       the instant a status changes, from any device or from the admin
+       dashboard, with no page refresh required.
+    ════════════════════════════════════════════════════════════════════ */
+    function subscribeToRealtimeOrders() {
+      if (_realtimeCh || !currentEmployee) return; // already subscribed
+
+      _realtimeCh = sb
+        .channel('deliveries-realtime-' + currentEmployee.id)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: 'assigned_employee_id=eq.' + currentEmployee.id,
+          },
+          (payload) => {
+            const { eventType, new: newRow, old: oldRow } = payload;
+            const orderId = newRow?.id ?? oldRow?.id;
+            if (orderId == null) return;
+
+            if (eventType === 'DELETE') {
+              _orders = _orders.filter(o => o.id !== orderId);
+            } else {
+              const relevant = [...ACTIVE_STATUSES, 'delivered'].includes(newRow.status);
+              const idx = _orders.findIndex(o => o.id === orderId);
+              if (!relevant) {
+                if (idx >= 0) _orders.splice(idx, 1);
+              } else if (idx >= 0) {
+                _orders[idx] = newRow;
+              } else {
+                _orders = [newRow, ..._orders];
+              }
+            }
+
+            if (document.getElementById('page-deliveries')?.classList.contains('active')) {
+              renderAll();
+            }
+            // Keep an open details modal fresh if it's showing the order that changed
+            if (_detailsOrderId === String(orderId)) {
+              const updatedOrder = _orders.find(o => String(o.id) === String(orderId));
+              if (updatedOrder) populateDetailsModal(updatedOrder);
+              else closeDetailsModal(); // order no longer in our workflow list
+            }
+            refreshHomeStats();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // Realtime hiccup — the page still works via manual refresh / next load()
+            console.warn('Deliveries realtime channel issue:', status);
+          }
+        });
+    }
+
+    function unsubscribeRealtime() {
+      if (_realtimeCh) {
+        sb.removeChannel(_realtimeCh);
+        _realtimeCh = null;
+      }
+    }
+
+    // ── syncFromOrders: called by Orders module right after accept() ───
+    // Keeps this page's own state array in sync without waiting on realtime.
+    function syncFromOrders(mineOrders) {
+      if (!currentEmployee) return;
+      const relevantIds = new Set(_orders.map(o => o.id));
+      let changed = false;
+      (mineOrders || []).forEach(o => {
+        if (!relevantIds.has(o.id) && ACTIVE_STATUSES.includes(o.status)) {
+          _orders = [o, ..._orders];
+          changed = true;
+        }
+      });
+      if (changed && document.getElementById('page-deliveries')?.classList.contains('active')) {
+        renderAll();
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PUBLIC API
+       Phase 4 will extend this with distribution-history + stock hooks
+       without needing to touch the transition functions above.
+    ════════════════════════════════════════════════════════════════════ */
+    return {
+      load,
+      startPreparing,
+      startDelivery,
+      markDelivered,
+      confirmMarkDelivered,
+      closeConfirmModal,
+      handleModalClick,
+      updateOrderStatus,
+      subscribeToRealtimeOrders,
+      unsubscribeRealtime,
+      syncFromOrders,
+      // Phase 3.5 additions
+      setFilter,
+      onSearchInput,
+      clearSearch,
+      resetSearchAndFilter,
+      openDetails,
+      closeDetailsModal,
+      handleDetailsModalClick,
+    };
+
+  })(); // end Deliveries module
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     INVENTORY MODULE
+     Shows the employee's per-product stock from employee_inventory.
+     Phase 3 Step 4 will add quantity adjustment controls.
+  ════════════════════════════════════════════════════════════════════════ */
+  const Inventory = (() => {
+
+    const wrap = () => document.getElementById('inventory-wrap');
+    let _realtimeCh = null; // this module's own Supabase realtime channel
+
+    function skeleton() {
+      wrap().innerHTML = `
+        <div class="inv-card">
+          <div class="inv-row order-card-skeleton" style="background:transparent">
+            <div class="sk-line" style="width:42px;height:42px;border-radius:0.85rem;margin-right:0.5rem;flex-shrink:0"></div>
+            <div style="flex:1"><div class="sk-line sk-wide"></div><div class="sk-line sk-mid" style="margin-top:0.4rem"></div></div>
+            <div style="width:40px"><div class="sk-line" style="height:1.5rem"></div></div>
+          </div>
+        </div>`;
+    }
+
+    // PART 3 — compact read-only renderer for the offline snapshot saved
+    // by load()'s write-through cache above. Deliberately simpler than
+    // the live template (no live thresholds/global stock, just what was
+    // last synced) — good enough to check "what did I have last time I
+    // had signal," not a substitute for a live count.
+    function renderOfflineInventory(cachedRows) {
+      if (cachedRows.length === 0) {
+        wrap().innerHTML = `<div class="empty-state"><div class="em-icon">📦</div><div class="em-title">No cached stock yet</div><div class="em-sub">Connect once online to sync your stock for offline viewing.</div></div>`;
+        return;
+      }
+      const html = cachedRows.map(r => `
+        <div class="inv-row">
+          <div class="inv-row-icon">🏷️</div>
+          <div class="inv-row-body">
+            <div class="inv-row-name">${escHtml(r.name)}</div>
+            <div class="inv-row-price">KSh ${Number(r.price || 0).toLocaleString()} per unit</div>
+            ${r.qtyClass === 'low' ? `<span class="inv-low-badge">⚠️ Low</span>` : ''}
+            ${r.qtyClass === 'zero' ? `<span class="inv-low-badge" style="background:var(--danger-bg);color:var(--danger)">❌ Out</span>` : ''}
+          </div>
+          <div class="inv-row-right">
+            <div class="inv-qty ${r.qtyClass}">${r.quantity}</div>
+            <div class="inv-qty-label">in stock</div>
+          </div>
+        </div>`).join('');
+      wrap().innerHTML = `<div class="offline-cached-note">📡 Offline — showing your last synced stock</div><div class="inv-card">${html}</div>`;
+    }
+
+    async function load() {
+      if (!currentEmployee) return;
+      skeleton();
+
+      // PART 3 — offline: render the last synced stock snapshot instead
+      // of an error. Uses its own compact renderer rather than the full
+      // fetch-path template below, so the online rendering logic (and
+      // its threshold/summary math) stays completely untouched.
+      if (!navigator.onLine && window.PWAOffline) {
+        const cached = await PWAOffline.getCache('employee_inventory_rows');
+        if (cached) { renderOfflineInventory(cached); return; }
+      }
+
+      // Fetch employee stock joined with product details
+      const { data: rows, error } = await sb
+        .from('employee_inventory')
+        .select('id, quantity, product_id, products(id, name, price, image_url)')
+        .eq('employee_id', currentEmployee.id)
+        .order('quantity', { ascending: true });
+
+      // Also fetch global thresholds
+      const { data: globalInv } = await sb
+        .from('inventory')
+        .select('product_id, low_stock_threshold, stock');
+
+      const threshMap = {};
+      (globalInv || []).forEach(r => { threshMap[r.product_id] = r.low_stock_threshold ?? 10; });
+
+      if (error) {
+        wrap().innerHTML = `<div class="empty-state"><div class="em-icon">⚠️</div><div class="em-title">Could not load</div><div class="em-sub">${escHtml(error.message)}</div></div>`;
+        return;
+      }
+
+      // PART 3 — write-through cache (threshold-adjusted quantity class
+      // baked in, since that's all the offline view needs to show).
+      if (window.PWAOffline) {
+        const threshold = (pid) => threshMap[pid] ?? 10;
+        PWAOffline.saveCache('employee_inventory_rows', (rows || []).map(r => ({
+          name: r.products?.name || 'Unknown product',
+          price: r.products?.price || 0,
+          quantity: r.quantity ?? 0,
+          qtyClass: (r.quantity ?? 0) === 0 ? 'zero' : (r.quantity ?? 0) <= threshold(r.product_id) ? 'low' : 'ok',
+        })));
+      }
+
+      if (!rows || rows.length === 0) {
+        wrap().innerHTML = `
+          <div class="empty-state" style="background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:2.5rem 1rem">
+            <div class="em-icon">📦</div>
+            <div class="em-title">No stock assigned yet</div>
+            <div class="em-sub">Your manager will assign products to you</div>
+          </div>`;
+        return;
+      }
+
+      // Update summary cards
+      const threshold = (pid) => threshMap[pid] ?? 10;
+      const total = rows.length;
+      const low   = rows.filter(r => r.quantity > 0 && r.quantity <= threshold(r.product_id)).length;
+      const zero  = rows.filter(r => r.quantity === 0).length;
+      const ok    = total - low - zero;
+      const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setEl('inv-total', total);
+      setEl('inv-low',   low + zero);
+      setEl('inv-ok',    ok);
+
+      // Render product rows
+      const html = rows.map(r => {
+        const prod = r.products || {};
+        const qty  = r.quantity ?? 0;
+        const thr  = threshold(r.product_id);
+        const qtyClass = qty === 0 ? 'zero' : qty <= thr ? 'low' : 'ok';
+        const lowBadge = (qty > 0 && qty <= thr)
+          ? `<span class="inv-low-badge">⚠️ Low</span>` : '';
+        const zeroBadge = qty === 0
+          ? `<span class="inv-low-badge" style="background:var(--danger-bg);color:var(--danger)">❌ Out</span>` : '';
+
+        return `
+          <div class="inv-row">
+            <div class="inv-row-icon">🏷️</div>
+            <div class="inv-row-body">
+              <div class="inv-row-name">${escHtml(prod.name || 'Unknown product')}</div>
+              <div class="inv-row-price">KSh ${Number(prod.price || 0).toLocaleString()} per unit</div>
+              ${lowBadge}${zeroBadge}
+            </div>
+            <div class="inv-row-right">
+              <div class="inv-qty ${qtyClass}">${qty}</div>
+              <div class="inv-qty-label">in stock</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      wrap().innerHTML = `<div class="inv-card">${html}</div>`;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       subscribeToRealtimeInventory — keeps "My Stock" in sync the instant
+       an admin distributes (or adjusts) this employee's stock, with no
+       page refresh required. Employees can only view here — there is no
+       write path for them, so this channel only ever triggers a reload.
+    ════════════════════════════════════════════════════════════════════ */
+    function subscribeToRealtimeInventory() {
+      if (_realtimeCh || !currentEmployee) return; // already subscribed
+
+      _realtimeCh = sb
+        .channel('employee-inventory-realtime-' + currentEmployee.id)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'employee_inventory',
+            filter: 'employee_id=eq.' + currentEmployee.id,
+          },
+          () => {
+            // Only reload if the My Stock page is actually visible
+            if (document.getElementById('page-inventory')?.classList.contains('active')) {
+              load();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('Inventory realtime channel issue:', status);
+          }
+        });
+    }
+
+    function unsubscribeRealtime() {
+      if (_realtimeCh) {
+        sb.removeChannel(_realtimeCh);
+        _realtimeCh = null;
+      }
+    }
+
+    return { load, subscribeToRealtimeInventory, unsubscribeRealtime };
+
+  })(); // end Inventory module
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     ADMIN DASHBOARD SYNC
+     The admin's order table uses .select('*') so it already reads
+     assigned_employee_id. The admin's realtime channel only listens for
+     INSERT events, so an UPDATE (accept) will appear next time the admin
+     manually refreshes or navigates to the Orders tab.
+     No extra code needed here — the Supabase row is the source of truth.
+  ════════════════════════════════════════════════════════════════════════ */
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     PHASE 6.7 — MOBILE WORKFORCE PLATFORM
+     Kept independent from the business-logic modules above (Part 13) —
+     everything here is prefixed PWAOffline/pwa* and none of it is a
+     dependency of Orders/Deliveries/Inventory; those modules only ever
+     call the small, optional `window.PWAOffline` surface, and check
+     `window.PWAOffline &&` first so this file works fine even if this
+     block were removed.
+  ════════════════════════════════════════════════════════════════════════ */
+
+  const EMPLOYEE_APP_VERSION = document.querySelector('meta[name="st-app-version"]')?.content || "0";
+  const VAPID_PUBLIC_KEY = "BF2wjO-Boct-Qse7ut0y0LKTs7NOwK52nkHClzaAm1VsqRPSO5sa7TckyMn1pIRGCEbBxzgQRMe29mywj_aKsB0"; // same key admin.html already uses — one VAPID key pair for the whole app
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+  }
+
+  /* ── PWAOffline — tiny promise-based IndexedDB wrapper ──────────────────
+     Two object stores:
+       cache             — key/value read cache (assigned orders, inventory,
+                            notifications, profile) written by loadAll()/
+                            load()/loadNotifications() above, read back when
+                            navigator.onLine is false.
+       pending_mutations — a real, working sync queue. Today only
+                            'mark_notif_read' is queued (see markNotifRead
+                            above for why order-status writes are excluded
+                            on purpose) — but syncOfflineChanges() below is
+                            written to dispatch by `type`, so a future
+                            mutation type is one `case` away, not a rewrite.
+  ─────────────────────────────────────────────────────────────────────── */
+  const PWAOffline = (() => {
+    const DB_NAME = "swahili-treats-employee";
+    const DB_VERSION = 1;
+    let _dbPromise = null;
+
+    function openDb() {
+      if (_dbPromise) return _dbPromise;
+      _dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("cache")) db.createObjectStore("cache");
+          if (!db.objectStoreNames.contains("pending_mutations")) db.createObjectStore("pending_mutations", { keyPath: "id", autoIncrement: true });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return _dbPromise;
+    }
+
+    async function saveCache(key, value) {
+      try {
+        const db = await openDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction("cache", "readwrite");
+          tx.objectStore("cache").put({ value, savedAt: Date.now() }, key);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) { console.warn("PWAOffline.saveCache failed:", e); return false; }
+    }
+
+    async function getCache(key) {
+      try {
+        const db = await openDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction("cache", "readonly");
+          const req = tx.objectStore("cache").get(key);
+          req.onsuccess = () => resolve(req.result ? req.result.value : null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { console.warn("PWAOffline.getCache failed:", e); return null; }
+    }
+
+    async function queueMutation(mutation) {
+      try {
+        const db = await openDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction("pending_mutations", "readwrite");
+          tx.objectStore("pending_mutations").add({ ...mutation, queuedAt: Date.now() });
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) { console.warn("PWAOffline.queueMutation failed:", e); return false; }
+    }
+
+    async function getQueuedMutations() {
+      try {
+        const db = await openDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction("pending_mutations", "readonly");
+          const req = tx.objectStore("pending_mutations").getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([]);
+        });
+      } catch (e) { console.warn("PWAOffline.getQueuedMutations failed:", e); return []; }
+    }
+
+    async function removeMutation(id) {
+      try {
+        const db = await openDb();
+        return new Promise((resolve) => {
+          const tx = db.transaction("pending_mutations", "readwrite");
+          tx.objectStore("pending_mutations").delete(id);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) { return false; }
+    }
+
+    return { saveCache, getCache, queueMutation, getQueuedMutations, removeMutation };
+  })();
+  window.PWAOffline = PWAOffline;
+
+  /* ── syncOfflineChanges() — Part 4's replay-on-reconnect ─────────────── */
+  async function syncOfflineChanges() {
+    const queued = await PWAOffline.getQueuedMutations();
+    if (queued.length === 0) return;
+
+    let synced = 0, failed = 0;
+    for (const m of queued) {
+      try {
+        if (m.type === "mark_notif_read") {
+          const { error } = await sb.from("notifications").update({ is_read: true }).eq("id", m.notifId).eq("employee_id", m.employeeId);
+          if (error) throw error;
+        }
+        // Future mutation types are additional `if (m.type === ...)` blocks
+        // here — see this module's header comment.
+        await PWAOffline.removeMutation(m.id);
+        synced++;
+      } catch (e) {
+        console.warn("syncOfflineChanges: failed to replay", m, e);
+        failed++;
+        // Leave it queued — it'll retry on the next reconnect.
+      }
+    }
+    if (synced > 0) showToast(`✔ Synced ${synced} change${synced === 1 ? "" : "s"} made while you were offline.`);
+    if (failed > 0) console.warn(`syncOfflineChanges: ${failed} change(s) still pending, will retry next time you're online.`);
+  }
+
+  /* ── watchConnectivity() — Part 3/4/11 ───────────────────────────────── */
+  function watchConnectivity() {
+    const banner = document.getElementById("pwa-offline-banner");
+    function setOffline() {
+      banner.textContent = "📡 You're offline — showing your last saved data";
+      banner.classList.remove("reconnected");
+      banner.classList.add("show");
+    }
+    function setOnline(showBriefly) {
+      if (showBriefly) {
+        banner.textContent = "✅ Back online — syncing…";
+        banner.classList.add("show", "reconnected");
+        setTimeout(() => banner.classList.remove("show"), 2000);
+      } else {
+        banner.classList.remove("show");
+      }
+    }
+    window.addEventListener("offline", setOffline);
+    window.addEventListener("online", () => {
+      setOnline(true);
+      syncOfflineChanges();
+      // PART 3 — "automatically synchronize... where appropriate": reload
+      // whichever page is currently visible so it stops showing a cached
+      // snapshot the moment real data is reachable again.
+      const active = document.querySelector(".page.active")?.id;
+      if (active === "page-orders" && typeof Orders !== "undefined") Orders.loadAll();
+      if (active === "page-deliveries" && typeof Deliveries !== "undefined") Deliveries.load();
+      if (active === "page-inventory" && typeof Inventory !== "undefined") Inventory.load();
+      if (active === "page-notifications") loadNotifications();
+    });
+    if (!navigator.onLine) setOffline();
+  }
+
+  /* ── registerServiceWorker() ──────────────────────────────────────────
+     Deliberately does NOT auto-activate a waiting worker — see PART 6
+     below for why, and employee-sw.js's own install handler comment. */
+  let _pwaRegistration = null;
+  async function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      _pwaRegistration = await navigator.serviceWorker.register("/employee-sw.js", { scope: "/employee/" });
+      return _pwaRegistration;
+    } catch (e) {
+      console.error("Employee SW registration failed:", e);
+      return null;
+    }
+  }
+
+  /* ── PART 6 — checkForUpdates() / updateApplication() ────────────────
+     A worker sitting in `.waiting` means a new employee-sw.js (and, by
+     implication, a new employee/index.html — the fetch handler always
+     re-caches the current version of every shell file on install) is
+     ready. We surface that as the Refresh Now / Update Later banner
+     instead of silently swapping the app under someone's thumb mid-tap. */
+  function checkForUpdates() {
+    if (!_pwaRegistration) return;
+
+    function announceWaiting(worker) {
+      if (!worker) return;
+      document.getElementById("pwa-update-banner").classList.add("show");
+      document.getElementById("pwa-update-refresh").onclick = () => updateApplication(worker);
+      document.getElementById("pwa-update-later").onclick = () => {
+        document.getElementById("pwa-update-banner").classList.remove("show");
+      };
+    }
+
+    if (_pwaRegistration.waiting) announceWaiting(_pwaRegistration.waiting);
+
+    _pwaRegistration.addEventListener("updatefound", () => {
+      const newWorker = _pwaRegistration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          announceWaiting(newWorker);
+        }
+      });
+    });
+
+    // Ask the browser to check for a new employee-sw.js now, and again
+    // whenever the app is brought back to the foreground — covers the
+    // common "employee installed the app days ago, opens it today" case
+    // without waiting on the browser's own (much less frequent) check.
+    _pwaRegistration.update().catch(() => {});
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") _pwaRegistration?.update().catch(() => {});
+    });
+  }
+
+  function updateApplication(worker) {
+    worker.postMessage({ type: "SKIP_WAITING" });
+    // Prevent stale cached assets (Part 6): once the new worker takes
+    // control, force a real reload so every tab is running the version
+    // it just activated rather than continuing to run old JS in memory.
+    navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
+  }
+
+  /* ── PART 1/11 — showInstallPrompt() ─────────────────────────────────
+     Chrome/Edge/Android fire beforeinstallprompt; iOS Safari never does
+     (no API for it — "Add to Home Screen" is a manual Share-sheet
+     action there), so the banner only ever shows where the native
+     prompt is actually available rather than guessing at iOS. */
+  let _deferredInstallPrompt = null;
+  function showInstallPrompt() {
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      _deferredInstallPrompt = e;
+      if (!localStorage.getItem("st_employee_install_dismissed")) {
+        document.getElementById("pwa-install-banner").classList.add("show");
+      }
+    });
+
+    document.getElementById("pwa-install-yes").addEventListener("click", async () => {
+      document.getElementById("pwa-install-banner").classList.remove("show");
+      if (!_deferredInstallPrompt) return;
+      _deferredInstallPrompt.prompt();
+      await _deferredInstallPrompt.userChoice;
+      _deferredInstallPrompt = null;
+    });
+    document.getElementById("pwa-install-no").addEventListener("click", () => {
+      document.getElementById("pwa-install-banner").classList.remove("show");
+      localStorage.setItem("st_employee_install_dismissed", "1");
+    });
+    window.addEventListener("appinstalled", () => {
+      document.getElementById("pwa-install-banner").classList.remove("show");
+    });
+  }
+
+  /* ── PART 5/8 — registerDevice() ──────────────────────────────────────
+     Upserts this device's row (platform/browser/app version, and — if
+     permission is already granted — its push subscription) into
+     employee_devices. This is genuinely working infrastructure, not a
+     stub: it's real rows, on a real table, updated on every load. What's
+     intentionally NOT here is anything that sends a push — see the
+     phase-6.7 migration header and employee-sw.js's push comment for
+     why that's future work, not this phase's. */
+  function detectPlatform() {
+    const ua = navigator.userAgent;
+    if (/android/i.test(ua)) return "android";
+    if (/iphone|ipad|ipod/i.test(ua)) return "ios";
+    if (/Mobi/i.test(ua)) return "mobile-other";
+    return "desktop";
+  }
+  function detectBrowser() {
+    const ua = navigator.userAgent;
+    if (/edg/i.test(ua)) return "Edge";
+    if (/chrome/i.test(ua)) return "Chrome";
+    if (/safari/i.test(ua) && !/chrome/i.test(ua)) return "Safari";
+    if (/firefox/i.test(ua)) return "Firefox";
+    return "Unknown";
+  }
+
+  async function registerDevice() {
+    if (!currentEmployee) return;
+    const platform = detectPlatform();
+    const browser = detectBrowser();
+    let pushEndpoint = null, pushKeys = null;
+
+    try {
+      if (_pwaRegistration && Notification.permission === "granted") {
+        const sub = await _pwaRegistration.pushManager.getSubscription();
+        if (sub) {
+          const json = sub.toJSON();
+          pushEndpoint = json.endpoint;
+          pushKeys = json.keys;
+        }
+      }
+    } catch (e) { /* push not supported on this browser — device row still saved without it */ }
+
+    try {
+      await sb.from("employee_devices").upsert(
+        {
+          employee_id: currentEmployee.id,
+          device_label: `${browser} on ${platform}`,
+          platform, browser,
+          app_version: EMPLOYEE_APP_VERSION,
+          user_agent: navigator.userAgent.slice(0, 200),
+          ...(pushEndpoint ? { push_endpoint: pushEndpoint, push_keys: pushKeys } : {}),
+        },
+        { onConflict: pushEndpoint ? "push_endpoint" : undefined }
+      );
+    } catch (e) { console.warn("registerDevice failed (non-fatal):", e); }
+  }
+
+  /* ── Push opt-in — same subscribe flow admin.html already proved out,
+     wired to employee_devices instead of push_subscriptions. Only runs
+     if the employee has already granted permission (auto-refresh) or
+     explicitly taps a notification-settings toggle — the Settings page
+     is expected to call this; no prompt is shown unprompted on load. */
+  async function subscribeToPush() {
+    if (!("PushManager" in window) || !_pwaRegistration) return false;
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return false;
+    try {
+      let sub = await _pwaRegistration.pushManager.getSubscription();
+      if (!sub) {
+        sub = await _pwaRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+      await registerDevice();
+      return true;
+    } catch (e) {
+      console.error("subscribeToPush failed:", e);
+      return false;
+    }
+  }
+  window.subscribeToPush = subscribeToPush; // exposed for a future Settings-page toggle
+
+  /* ── initializePWA() — Part 13's single entry point, called from
+     boot() once currentEmployee is known. ─────────────────────────────── */
+  async function initializePWA() {
+    watchConnectivity();
+    showInstallPrompt();
+    const reg = await registerServiceWorker();
+    if (reg) checkForUpdates();
+    await registerDevice();
+    if (navigator.onLine) syncOfflineChanges(); // catch anything queued from a previous session
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     BOOT
+  ════════════════════════════════════════════════════════════════════════ */
+  boot();
+  </script>
+</body>
+</html>

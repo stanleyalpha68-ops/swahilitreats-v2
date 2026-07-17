@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order Placed - Swahili Treats</title>
+    <meta name="theme-color" content="#219ebc" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Quicksand:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #ffb703;
+        --secondary: #fb8500;
+        --accent: #219ebc;
+        --bg: linear-gradient(135deg, #fffbea 0%, #e0f7fa 100%);
+        --button: #ff006e;
+        --button-hover: #d9045b;
+        --text: #22223b;
+        --text-muted: #767689;
+        --border: #eee;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Quicksand", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 2.2rem 1rem 3rem;
+      }
+      .card {
+        background: #fff;
+        border-radius: 1.8rem;
+        padding: 2.2rem 1.6rem 1.8rem;
+        max-width: 460px;
+        width: 100%;
+        box-shadow: 0 8px 32px rgba(34,34,59,0.12);
+        text-align: center;
+        animation: rise 0.6s cubic-bezier(0.16,1,0.3,1) both;
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(24px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .big-emoji {
+        font-size: 3.2rem;
+        margin-bottom: 0.4rem;
+        animation: pop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.15s both;
+      }
+      @keyframes pop {
+        from { transform: scale(0.4); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+      }
+      h1 {
+        font-family: "Fredoka", cursive;
+        font-size: 1.4rem;
+        color: var(--accent);
+        margin: 0 0 0.5rem;
+      }
+      .thank-you {
+        font-size: 0.92rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+        margin: 0 0 1.5rem;
+      }
+
+      .order-tags {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.4rem;
+      }
+      .order-id-tag {
+        background: #fffbea;
+        border: 1.5px solid var(--primary);
+        border-radius: 0.8rem;
+        padding: 0.4rem 1rem;
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: var(--secondary);
+        letter-spacing: 0.5px;
+      }
+
+      .summary {
+        text-align: left;
+        background: #fafafd;
+        border-radius: 1.1rem;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1.5rem;
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid #f0f0f4;
+        font-size: 0.88rem;
+      }
+      .summary-row:last-child { border-bottom: none; }
+      .summary-row .label { color: var(--text-muted); }
+      .summary-row .value { font-weight: 700; text-align: right; }
+      .summary-row .value.total { color: var(--secondary); font-size: 1rem; }
+
+      .btn-col { display: flex; flex-direction: column; gap: 0.7rem; }
+      .btn {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border-radius: 1.3rem;
+        padding: 0.9rem 1rem;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        min-height: 3rem;
+        transition: transform 0.1s, background 0.15s;
+      }
+      .btn:active { transform: scale(0.98); }
+      .btn-primary { background: var(--button); color: #fff; }
+      .btn-primary:hover { background: var(--button-hover); }
+      .btn-outline { background: #fff; color: var(--accent); border: 1.5px solid var(--accent); }
+      .btn-outline:hover { background: #eef8fb; }
+      .btn-ghost { background: #f4f4f8; color: var(--text); }
+      .btn-ghost:hover { background: #eaeaf0; }
+
+      .loading-note, .error-note {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin: 1rem 0;
+      }
+      .error-note { color: #e53935; }
+
+      .skel {
+        background: linear-gradient(90deg, #f0f0f4 25%, #e6e6ee 37%, #f0f0f4 63%);
+        background-size: 400px 100%;
+        animation: shimmer 1.4s infinite linear;
+        border-radius: 0.5rem;
+        height: 0.9rem;
+        margin: 0.5rem 0;
+      }
+      @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+    </style>
+  </head>
+  <body>
+
+    <div class="card">
+      <div class="big-emoji">🎉</div>
+      <h1>Order Successfully Received</h1>
+      <p class="thank-you">
+        Thank you for your order! We're preparing it now. You can track every step of your delivery in real time.
+      </p>
+
+      <div id="loading-block">
+        <div class="skel" style="width:60%;margin:0.5rem auto"></div>
+        <div class="skel" style="width:80%;margin:0.5rem auto"></div>
+        <div class="skel" style="width:40%;margin:0.5rem auto"></div>
+      </div>
+
+      <div id="content-block" style="display:none">
+        <div class="order-tags" id="order-tags"></div>
+
+        <div class="summary" id="summary">
+          <div class="summary-row"><span class="label">Date &amp; Time Placed</span><span class="value" id="s-date">—</span></div>
+          <div class="summary-row"><span class="label">Estimated Delivery</span><span class="value" id="s-eta">—</span></div>
+          <div class="summary-row"><span class="label">Number of Items</span><span class="value" id="s-items">—</span></div>
+          <div class="summary-row"><span class="label">Payment Method</span><span class="value" id="s-payment">—</span></div>
+          <div class="summary-row"><span class="label">Total Amount</span><span class="value total" id="s-total">—</span></div>
+        </div>
+
+        <div class="btn-col">
+          <button type="button" class="btn btn-primary" id="track-btn">📦 Track My Order</button>
+          <a class="btn btn-outline" id="continue-btn" href="products.html">🛍️ Continue Shopping</a>
+          <button type="button" class="btn btn-ghost" id="receipt-btn">🧾 Download Receipt</button>
+        </div>
+      </div>
+
+      <div id="error-block" style="display:none">
+        <p class="error-note">We placed your order, but couldn't load a summary right now.</p>
+        <div class="btn-col">
+          <a class="btn btn-primary" href="products.html">🛍️ Continue Shopping</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // ═══════════════════════════════════════════════════════════════════
+      // PHASE 5.1 — ORDER SUCCESS PAGE (success.html)
+      //
+      // Reached right after checkout via:
+      //     success.html?orders=ORDER_ID_1,ORDER_ID_2,...
+      // (products.html's cart checkout creates one `orders` row per cart
+      // line item, each with its own order_id — see the insert loop in
+      // products.html's submit handler — so a single checkout can place
+      // more than one order. This page fetches all of them fresh from
+      // Supabase rather than trusting anything passed in the URL besides
+      // the order codes themselves.)
+      //
+      // "Track My Order" hands off to track.html using the *same* codes:
+      // a single order links straight to track.html?order=ID (the
+      // QR-ready format from Part 15); more than one links to
+      // track.html?orders=ID1,ID2 (track.html's own extension of that
+      // format — see the comment block at the top of track.html).
+      // ═══════════════════════════════════════════════════════════════════
+
+      const SUPABASE_URL = "https://hamqmvjucrvsjhqfsehe.supabase.co";
+      const SUPABASE_ANON = "sb_publishable_8g8mp-PH2uvpPR4RbTmGsg_kdXw9fXb";
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      const ETA_CONFIG = {
+        pending: "20–30 mins", accepted: "15–20 mins", claimed: "15–20 mins",
+        preparing: "10–15 mins", in_progress: "10–15 mins",
+        delivering: "5–10 mins", out_for_delivery: "5–10 mins",
+        delivered: "Completed", cancelled: "—",
+      };
+      const DEFAULT_PAYMENT_METHOD = "Cash on Delivery";
+
+      function ksh(n) { return `Ksh ${(Number(n) || 0).toLocaleString()}`; }
+      function fmtDateTime(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+      }
+      function escHtml(str) {
+        return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+      function calculateETA(status) { return ETA_CONFIG[status] || ETA_CONFIG.pending; }
+
+      /** Canonical tracking URL — mirrors track.html's own buildTrackingUrl(). */
+      function buildTrackingUrl(orderCodes) {
+        const codes = Array.isArray(orderCodes) ? orderCodes : [orderCodes];
+        const param = codes.length === 1 ? `order=${encodeURIComponent(codes[0])}` : `orders=${encodeURIComponent(codes.join(","))}`;
+        return new URL(`track.html?${param}`, window.location.href).toString();
+      }
+
+      // ── FUTURE: automated tracking-link delivery (Part 17) ─────────────
+      // Once SMS/WhatsApp/Email sending is wired up (e.g. a Supabase Edge
+      // Function calling Africa's Talking / Twilio / the WhatsApp Business
+      // API), call these right after loadPlacedOrders() resolves below,
+      // passing buildTrackingUrl(orderCodes) as the link to send. No
+      // changes to track.html itself are required for any of these.
+      async function sendTrackingLinkViaSMS(phone, url)      { /* TODO: Phase 5.x */ }
+      async function sendTrackingLinkViaWhatsApp(phone, url)  { /* TODO: Phase 5.x */ }
+      async function sendTrackingLinkViaEmail(email, url)     { /* TODO: Phase 5.x */ }
+
+      function getOrderCodesFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const single = params.get("order");
+        const multi = params.get("orders");
+        if (multi) return multi.split(",").map(s => s.trim()).filter(Boolean);
+        if (single) return [single.trim()];
+        return [];
+      }
+
+      /** Reusable loader — fetches the just-placed order rows fresh, and
+       *  aggregates them into a single order-success summary. */
+      async function loadPlacedOrders(orderCodes) {
+        const { data, error } = await db
+          .from("orders")
+          .select("order_id, product, quantity, total_price, status, created_at")
+          .in("order_id", orderCodes);
+        return { data, error };
+      }
+
+      function renderSummary(orders) {
+        document.getElementById("loading-block").style.display = "none";
+        document.getElementById("content-block").style.display = "";
+
+        const tagsEl = document.getElementById("order-tags");
+        tagsEl.innerHTML = orders.map(o => `<div class="order-id-tag">${escHtml(o.order_id)} — ${escHtml(o.product || "")}</div>`).join("");
+
+        const earliest = orders.reduce((min, o) => (!min || new Date(o.created_at) < new Date(min)) ? o.created_at : min, null);
+        const totalAmount = orders.reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+        const itemCount = orders.reduce((s, o) => s + (Number(o.quantity) || 0), 0);
+        // If every order shares the same status, show its ETA; otherwise
+        // show the earliest-stage ETA (the whole batch isn't done until
+        // the slowest item is).
+        const STAGE_ORDER = ["pending", "accepted", "claimed", "preparing", "in_progress", "delivering", "out_for_delivery", "delivered"];
+        const earliestStatus = orders.reduce((slowest, o) => {
+          const si = STAGE_ORDER.indexOf(slowest);
+          const oi = STAGE_ORDER.indexOf(o.status);
+          return oi >= 0 && (si < 0 || oi < si) ? o.status : slowest;
+        }, orders[0]?.status);
+
+        document.getElementById("s-date").textContent  = fmtDateTime(earliest);
+        document.getElementById("s-eta").textContent   = calculateETA(earliestStatus);
+        document.getElementById("s-items").textContent = String(itemCount);
+        document.getElementById("s-payment").textContent = DEFAULT_PAYMENT_METHOD;
+        document.getElementById("s-total").textContent = ksh(totalAmount);
+
+        const codes = orders.map(o => o.order_id);
+        document.getElementById("track-btn").addEventListener("click", () => {
+          window.location.href = buildTrackingUrl(codes);
+        });
+        document.getElementById("receipt-btn").addEventListener("click", () => {
+          // Part 18 — placeholder only; full receipt lives on track.html
+          // (renderReceipt()), which this button hands off to.
+          window.location.href = buildTrackingUrl(codes);
+        });
+      }
+
+      function renderError() {
+        document.getElementById("loading-block").style.display = "none";
+        document.getElementById("content-block").style.display = "none";
+        document.getElementById("error-block").style.display = "";
+      }
+
+      async function init() {
+        const codes = getOrderCodesFromURL();
+        if (codes.length === 0) {
+          renderError();
+          return;
+        }
+        try {
+          const { data, error } = await loadPlacedOrders(codes);
+          if (error || !data || data.length === 0) {
+            console.error("loadPlacedOrders error:", error);
+            renderError();
+            return;
+          }
+          renderSummary(data);
+        } catch (err) {
+          console.error("Unexpected error loading order summary:", err);
+          renderError();
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

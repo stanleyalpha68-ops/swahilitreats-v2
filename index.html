@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Swahili Treats - Welcome</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Same design tokens as products.html, so the welcome page
+           and the shop feel like one continuous experience. */
+        --primary: #ff9f1c;
+        --secondary: #0e7c86;
+        --accent: #e3b778;
+        --bg: linear-gradient(135deg, #fffbf5 0%, #fdf0e1 50%, #ffe8cc 100%);
+        --button: #ff9f1c;
+        --button-hover: #e8890a;
+        --text: #2b2620;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family: "Manrope", "Quicksand", Arial, sans-serif;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 60%, var(--secondary) 130%);
+        color: #2b2620;
+        position: relative;
+        overflow: hidden;
+        padding: 2rem 1.5rem;
+      }
+      .floating-emoji {
+        position: absolute;
+        font-size: 2.5rem;
+        opacity: 0.45;
+        animation: float 6s ease-in-out infinite;
+        pointer-events: none;
+      }
+      .emoji1 { left: 8vw; top: 12vh; animation-delay: 0s; }
+      .emoji2 { right: 10vw; top: 18vh; animation-delay: 2s; }
+      .emoji3 { left: 14vw; bottom: 14vh; animation-delay: 1s; }
+      .emoji4 { right: 12vw; bottom: 10vh; animation-delay: 3s; }
+      @keyframes float {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(-24px); }
+        100% { transform: translateY(0); }
+      }
+      .welcome-card {
+        position: relative;
+        z-index: 1;
+        max-width: 480px;
+      }
+      .logo-emoji {
+        font-size: 4rem;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+      h1 {
+        font-family: "Fredoka", cursive;
+        color: #fff;
+        font-size: 2.6rem;
+        margin: 0 0 0.4rem 0;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        letter-spacing: 0.5px;
+      }
+      p.tagline {
+        color: #fff;
+        font-family: "Quicksand", sans-serif;
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 0.8rem 0;
+        opacity: 0.95;
+      }
+      p.subtext {
+        color: #fff;
+        font-size: 0.98rem;
+        font-weight: 500;
+        margin: 0 0 2.2rem 0;
+        opacity: 0.85;
+        line-height: 1.5;
+      }
+      a.shop-btn {
+        display: inline-block;
+        background: #fff;
+        color: var(--button-hover);
+        border-radius: 3rem;
+        padding: 1rem 2.6rem;
+        font-size: 1.1rem;
+        font-weight: 800;
+        font-family: "Manrope", sans-serif;
+        text-decoration: none;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      a.shop-btn:active {
+        transform: scale(0.96);
+      }
+      .track-link {
+        display: block;
+        margin-top: 1.4rem;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: underline;
+        opacity: 0.85;
+      }
+    </style>
+  </head>
+  <body>
+    <span class="floating-emoji emoji1">🍪</span>
+    <span class="floating-emoji emoji2">🥭</span>
+    <span class="floating-emoji emoji3">🌶️</span>
+    <span class="floating-emoji emoji4">🍬</span>
+
+    <div class="welcome-card">
+      <span class="logo-emoji">🍬</span>
+      <h1>Swahili Treats</h1>
+      <p class="tagline">Sweet. Spicy. Swahili.</p>
+      <p class="subtext">Handmade snacks bursting with East African flavor — order online and get them delivered fresh.</p>
+      <a class="shop-btn" href="products.html">Shop Now 🛍️</a>
+      <a class="track-link" href="track.html">Track an existing order →</a>
+    </div>
+  </body>
+</html>

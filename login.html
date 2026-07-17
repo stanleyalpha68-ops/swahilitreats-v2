@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Swahili Treats – Admin Login</title>
+
+  <!-- ── PWA metadata ───────────────────────────────────────────────── -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#ff006e" />
+  <meta name="description" content="Sign in to the Swahili Treats admin dashboard." />
+
+  <!-- Android / Chrome -->
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- iOS Safari "Add to Home Screen" support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ST Admin" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* PHASE 7.1 — Swahili Treats Design System */
+      --primary: #0e7c86;
+      --secondary: #ff9f1c;
+      --accent: #e3b778;
+      --bg: linear-gradient(135deg, #fffbf5 0%, #fdf0e1 50%, #fff3e0 100%);
+      --button: #ff9f1c;
+      --button-hover: #e8890a;
+      --text: #2b2620;
+      --error-bg: #fbe6e6;
+      --error-border: #b91c1c;
+      --error-text: #8f1414;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Floating decorative emojis */
+    .floating-emoji {
+      position: fixed;
+      font-size: 2.2rem;
+      opacity: 0.35;
+      animation: float 6s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .e1 { left: 8vw;  top: 12vh; animation-delay: 0s; }
+    .e2 { right: 10vw; top: 18vh; animation-delay: 2s; }
+    .e3 { left: 15vw; bottom: 14vh; animation-delay: 1s; }
+    .e4 { right: 14vw; bottom: 10vh; animation-delay: 3s; }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-22px); }
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255,255,255,0.92);
+      border-radius: 2rem;
+      box-shadow: 0 8px 32px rgba(34,34,59,0.10);
+      padding: 2.5rem 2rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      z-index: 1;
+      animation: cardIn 0.6s both;
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(30px) scale(0.97); }
+      to   { opacity:1; transform:translateY(0)    scale(1); }
+    }
+
+    /* Logo */
+    .logo {
+      font-family: 'Fredoka', cursive;
+      font-size: 2.2rem;
+      color: var(--button);
+      letter-spacing: 2px;
+      text-align: center;
+      margin-bottom: 0.2rem;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.92rem;
+      color: #888;
+      font-weight: 600;
+      margin-bottom: 1.8rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* Form */
+    .field {
+      margin-bottom: 1.1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.3px;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 1rem;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(33,158,188,0.12);
+    }
+
+    /* Password wrapper (show/hide toggle) */
+    .pw-wrap {
+      position: relative;
+    }
+    .pw-wrap input {
+      padding-right: 3rem;
+    }
+    .pw-toggle {
+      position: absolute;
+      right: 0.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0.2rem;
+      line-height: 1;
+      color: #aaa;
+    }
+    .pw-toggle:hover { color: var(--accent); }
+
+    /* Error box */
+    .error-box {
+      display: none;
+      align-items: flex-start;
+      gap: 0.6rem;
+      background: var(--error-bg);
+      border: 1.5px solid var(--error-border);
+      border-radius: 0.9rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.1rem;
+      font-size: 0.9rem;
+      color: var(--error-text);
+      font-weight: 600;
+      animation: shake 0.35s both;
+    }
+    .error-box.visible { display: flex; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-6px); }
+      40%,80% { transform: translateX(6px); }
+    }
+    .error-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Submit button */
+    .login-btn {
+      width: 100%;
+      background: var(--button);
+      color: #fff;
+      font-family: 'Manrope', 'Quicksand', Arial, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 0.85rem 1rem;
+      border: none;
+      border-radius: 1.5rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, opacity 0.2s;
+      margin-top: 0.4rem;
+      letter-spacing: 0.3px;
+    }
+    .login-btn:hover:not(:disabled) {
+      background: var(--button-hover);
+      transform: scale(1.02);
+    }
+    .login-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Spinner inside button */
+    .spinner {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4em;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Footer note */
+    .footer-note {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #bbb;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 2rem 1.2rem 1.5rem;
+        border-radius: 1.5rem;
+      }
+      .logo { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-emoji e1">🍬</div>
+  <div class="floating-emoji e2">🍭</div>
+  <div class="floating-emoji e3">🥭</div>
+  <div class="floating-emoji e4">🥥</div>
+
+  <div class="card">
+    <div class="logo">🍬 Swahili Treats</div>
+    <div class="subtitle">Admin Dashboard — Sign In</div>
+
+    <div class="error-box" id="error-box" role="alert">
+      <span class="error-icon">⚠️</span>
+      <span id="error-msg">Invalid email or password.</span>
+    </div>
+
+    <div id="login-step">
+      <div class="field">
+        <label for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          autocomplete="email"
+          placeholder="admin@example.com"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw-wrap">
+          <input
+            type="password"
+            id="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required
+          />
+          <button class="pw-toggle" type="button" id="pw-toggle" aria-label="Toggle password visibility">👁️</button>
+        </div>
+      </div>
+
+      <button class="login-btn" id="login-btn" type="button">Sign In</button>
+    </div>
+
+    <!-- Phase 7.5.1 Part 3 — shown only when the signed-in account is the
+         Owner AND has a verified TOTP factor enrolled. Every other role
+         never sees this step at all. -->
+    <div id="mfa-step" style="display:none">
+      <p style="text-align:center;color:#666;font-size:0.85rem;margin-bottom:1rem">
+        Enter the 6-digit code from your authenticator app.
+      </p>
+      <div class="field">
+        <label for="mfa-code">Authentication code</label>
+        <input type="text" id="mfa-code" maxlength="6" autocomplete="one-time-code"
+          placeholder="000000" style="text-align:center;letter-spacing:0.4em;font-size:1.3rem" />
+      </div>
+      <button class="login-btn" id="mfa-verify-btn" type="button">Verify</button>
+      <div style="text-align:center;margin-top:0.8rem">
+        <a href="#" id="mfa-use-recovery" style="font-size:0.8rem;color:#888">Use a recovery code instead</a>
+      </div>
+    </div>
+
+    <div class="footer-note">Access restricted to authorised admins only.</div>
+  </div>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/auth-shared.js"></script>
+  <script>
+    // ── Supabase config + role routing come from auth-shared.js ────────
+    const { createClient } = supabase;
+    const auth = createClient(STAFF_SUPABASE_URL, STAFF_SUPABASE_ANON);
+
+    // Phase 7.5.5 QA fix — flips true the moment this person starts
+    // signing in themselves, so the "already logged in" auto-redirect
+    // below can't race a stale session's redirect past a fresh manual
+    // login. See staffCheckSessionAndRedirect() in auth-shared.js.
+    let staffLoginInProgress = false;
+
+    // ── If already logged in, go straight to the right workspace ───────
+    staffCheckSessionAndRedirect(auth, "", () => staffLoginInProgress);
+
+    // ── DOM refs ──────────────────────────────────────────────────────
+    const emailEl   = document.getElementById("email");
+    const passwordEl= document.getElementById("password");
+    const loginBtn  = document.getElementById("login-btn");
+    const errorBox  = document.getElementById("error-box");
+    const errorMsg  = document.getElementById("error-msg");
+    const pwToggle  = document.getElementById("pw-toggle");
+
+    // ── Show/hide password ────────────────────────────────────────────
+    pwToggle.addEventListener("click", () => {
+      const isHidden = passwordEl.type === "password";
+      passwordEl.type = isHidden ? "text" : "password";
+      pwToggle.textContent = isHidden ? "🙈" : "👁️";
+    });
+
+    // ── Show error helper ─────────────────────────────────────────────
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      // Re-trigger shake animation
+      errorBox.classList.remove("visible");
+      void errorBox.offsetWidth; // reflow
+      errorBox.classList.add("visible");
+    }
+
+    // ── Login handler ─────────────────────────────────────────────────
+    async function doLogin() {
+      const email    = emailEl.value.trim();
+      const password = passwordEl.value;
+
+      // Basic validation
+      if (!email) { showError("Please enter your email address."); emailEl.focus(); return; }
+      if (!password) { showError("Please enter your password."); passwordEl.focus(); return; }
+
+      // Phase 7.5.5 QA fix — a real sign-in attempt is underway now, so
+      // the page-load auto-redirect check must defer to it.
+      staffLoginInProgress = true;
+
+      // Loading state
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span>Signing in…';
+      errorBox.classList.remove("visible");
+
+      const { error } = await auth.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign In";
+
+        // PHASE 6.10 Part 6 — Security Monitoring. Anon insert (no
+        // session exists at this point) — see phase-6.10's migration
+        // for why that's safe: the payload is just an email string and
+        // an event type, nothing readable or actionable from it.
+        auth.from("security_events").insert({
+          event_type: "failed_login", severity: "low", actor_identifier: email, portal: "admin",
+          details: { reason: error.message },
+        }).then(() => {}, () => {}); // best-effort, never blocks the login flow on failure
+
+        // Map Supabase error messages to user-friendly ones
+        const msg = error.message || "";
+        if (msg.toLowerCase().includes("invalid login") || msg.toLowerCase().includes("invalid credentials") || msg.toLowerCase().includes("email not confirmed")) {
+          showError("Incorrect email or password. Please try again.");
+        } else if (msg.toLowerCase().includes("too many")) {
+          showError("Too many login attempts. Please wait a moment and try again.");
+        } else if (msg.toLowerCase().includes("network") || msg.toLowerCase().includes("fetch")) {
+          showError("Network error — check your connection and try again.");
+        } else {
+          showError(msg || "Login failed. Please try again.");
+        }
+        return;
+      }
+
+      // Phase 7.5.1 Part 3 — Owner 2FA gate. Reuses Supabase Auth's own
+      // MFA/AAL system (no custom TOTP code): after a successful
+      // password sign-in, ask Supabase whether this session still needs
+      // to step up to aal2. Non-Owner staff never enrolled a factor, so
+      // nextLevel === currentLevel for them and this is a no-op.
+      const { data: aal } = await auth.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+        const { data: factorData } = await auth.auth.mfa.listFactors();
+        pendingMfaFactorId = factorData?.totp?.find(f => f.status === "verified")?.id || null;
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign In";
+        document.getElementById("login-step").style.display = "none";
+        document.getElementById("mfa-step").style.display = "block";
+        document.getElementById("mfa-code").focus();
+        return; // redirect happens after verifyMfaCode() succeeds below
+      }
+
+      await finishLoginAndRedirect();
+    }
+
+    // Success — stamp last_seen, write an audit_log 'login' row, then
+    // redirect by role. Shared by the normal path above and by
+    // verifyMfaCode() below, so there's exactly one place this logic lives.
+    async function finishLoginAndRedirect() {
+      let resolvedRoleForRedirect = null;
+      try {
+        const { data: { session: sess } } = await auth.auth.getSession();
+        if (sess) {
+          const { data: empRow } = await auth
+            .from("employees")
+            .select("id, role")
+            .eq("user_id", sess.user.id)
+            .maybeSingle();
+          resolvedRoleForRedirect = empRow?.role || null;
+          await auth
+            .from("employees")
+            .update({ last_seen: new Date().toISOString() })
+            .eq("user_id", sess.user.id);
+          // Phase 6.5 Part 7/8: Login has no row-change for a trigger to
+          // catch, so it's written explicitly, right where it happens.
+          if (empRow?.id) {
+            await auth.from("audit_log").insert({
+              actor_employee_id: empRow.id,
+              actor_role: empRow.role,
+              action_type: "login",
+              entity_type: "session",
+              device_placeholder: navigator.userAgent,
+              result: "success",
+            });
+          }
+        }
+      } catch (_) { /* non-fatal — never block sign-in on audit logging */ }
+
+      // Phase 7.5.1 Parts 1/2 — Single Staff Login / Automatic Workspace
+      // Routing, via the one shared rule in auth-shared.js (both entry
+      // points route the same way; each workspace's own internal guard
+      // still applies on top — admin.html still bounces employees,
+      // employee/index.html still bounces admin/manager).
+      window.location.replace(staffRedirectPath(resolvedRoleForRedirect ?? "employee", ""));
+    }
+
+    // ── MFA verification step ───────────────────────────────────────────
+    let pendingMfaFactorId = null;
+
+    async function verifyMfaCode() {
+      const code = document.getElementById("mfa-code").value.trim();
+      if (!/^\d{6}$/.test(code)) { showError("Enter the 6-digit code from your authenticator app."); return; }
+      if (!pendingMfaFactorId) { showError("Couldn't find your authenticator — try signing in again."); return; }
+
+      const verifyBtn = document.getElementById("mfa-verify-btn");
+      verifyBtn.disabled = true; verifyBtn.textContent = "Verifying…";
+
+      const { data: challenge, error: chErr } = await auth.auth.mfa.challenge({ factorId: pendingMfaFactorId });
+      if (chErr) { verifyBtn.disabled = false; verifyBtn.textContent = "Verify"; showError(chErr.message); return; }
+
+      const { error: verErr } = await auth.auth.mfa.verify({ factorId: pendingMfaFactorId, challengeId: challenge.id, code });
+      if (verErr) {
+        verifyBtn.disabled = false; verifyBtn.textContent = "Verify";
+        showError("Incorrect code. Please try again.");
+        return;
+      }
+      await finishLoginAndRedirect();
+    }
+
+    document.getElementById("mfa-verify-btn")?.addEventListener("click", verifyMfaCode);
+    document.getElementById("mfa-code")?.addEventListener("keydown", e => { if (e.key === "Enter") verifyMfaCode(); });
+
+    // Phase 7.5.1 Part 9 — recovery code fallback, for when the
+    // authenticator device itself is unavailable. Redeeming a code still
+    // only unlocks reaching the dashboard in THIS app (see the SQL
+    // migration's caveat: it does not itself elevate the Supabase
+    // session to aal2, since nothing else in this project currently
+    // gates real RLS on aal2 — it's a practical bypass of this login
+    // gate specifically, matching what "recovery code" means for the
+    // Owner in every part of this phase).
+    document.getElementById("mfa-use-recovery")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const code = prompt("Enter one of your recovery codes:");
+      if (!code) return;
+      staffLoginInProgress = true; // Phase 7.5.5 QA fix — same guard as doLogin()
+      const { data, error } = await auth.rpc("redeem_owner_recovery_code", { p_code: code.trim().toUpperCase() });
+      if (error || !data) { showError("That recovery code is invalid or already used."); return; }
+      await finishLoginAndRedirect();
+    });
+
+    // ── Click & Enter key triggers ─────────────────────────────────────
+    loginBtn.addEventListener("click", doLogin);
+    [emailEl, passwordEl].forEach(el => {
+      el.addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+    });
+  </script>
+
+  <!-- ── PWA: register service worker ────────────────────────────────────── -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/admin-sw.js", { scope: "/" })
+          .catch(err => console.error("Service worker registration failed:", err));
+      });
+    }
+  </script>
+</body>
+</html>

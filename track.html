@@ -1,0 +1,1791 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Track Your Order - Swahili Treats</title>
+    <meta name="theme-color" content="#219ebc" />
+    <meta name="description" content="Track your Swahili Treats order in real time." />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PHASE 5.1 — PWA note (Part 14): this page gets its own tiny,
+         self-contained manifest + service worker (track-manifest.json /
+         track-sw.js). Neither file is shared with the Admin PWA
+         (manifest.json / admin-sw.js), so nothing here can affect it.
+    ═══════════════════════════════════════════════════════════════════ -->
+    <link rel="manifest" href="/track-manifest.json" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Manrope:wght@400;500;600;700;800&family=Quicksand:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* PHASE 7.1 — Swahili Treats Design System */
+        --primary: #ff9f1c;
+        --secondary: #0e7c86;
+        --accent: #e3b778;
+        --bg: linear-gradient(135deg, #fffbf5 0%, #fdf0e1 50%, #ffe8cc 100%);
+        --button: #ff9f1c;
+        --button-hover: #e8890a;
+        --text: #2b2620;
+        --text-muted: #6b6255;
+        --border: #efe4d3;
+        --card: #ffffff;
+
+        --gray: #9e9488;
+        --gray-bg: #f1ece2;
+        --blue: #0e7c86;
+        --blue-bg: #e3f2f3;
+        --orange: #ff9f1c;
+        --orange-bg: #fff1de;
+        --purple: #8b5cf6;
+        --purple-bg: #ede9fe;
+        --green: #4c9a2a;
+        --green-bg: #e9f5e2;
+        --red: #b91c1c;
+        --red-bg: #fbe6e6;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Manrope", "Quicksand", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      a { color: inherit; }
+
+      header {
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        padding: 1.4rem 1rem 1.2rem;
+        text-align: center;
+        border-bottom-left-radius: 1.6rem;
+        border-bottom-right-radius: 1.6rem;
+        box-shadow: 0 4px 16px rgba(34, 34, 59, 0.08);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+      .header-logo {
+        font-family: "Fredoka", cursive;
+        font-size: 1.5rem;
+        color: #fff;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      }
+      .header-sub {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.92);
+        margin-top: 0.2rem;
+        font-weight: 600;
+      }
+
+      main {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 1.25rem 1rem 3rem;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 1.4rem;
+        padding: 1.4rem 1.25rem;
+        box-shadow: 0 2px 14px rgba(34,34,59,0.07);
+        margin-bottom: 1.1rem;
+      }
+
+      h2.section-title {
+        font-family: "Fredoka", cursive;
+        font-size: 1.15rem;
+        color: var(--text);
+        margin: 0 0 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4em;
+      }
+
+      /* ── Search form ───────────────────────────────────────────── */
+      .search-toggle {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        background: #f4f4f8;
+        border-radius: 1rem;
+        padding: 0.3rem;
+      }
+      .search-toggle button {
+        flex: 1;
+        border: none;
+        background: none;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 0.88rem;
+        padding: 0.6rem 0.5rem;
+        border-radius: 0.75rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .search-toggle button.active {
+        background: #fff;
+        color: var(--accent);
+        box-shadow: 0 1px 6px rgba(34,34,59,0.1);
+      }
+      .search-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 0.9rem;
+      }
+      .search-field label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+      .search-field input {
+        font-family: inherit;
+        font-size: 1rem;
+        padding: 0.85rem 1rem;
+        border-radius: 1rem;
+        border: 1.5px solid var(--border);
+        background: #fafafa;
+        min-height: 3rem;
+      }
+      .search-field input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(227, 183, 120, 0.35);
+        background: #fff;
+      }
+      .search-btn {
+        width: 100%;
+        background: var(--button);
+        color: #fff;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        border-radius: 1.3rem;
+        padding: 0.95rem;
+        cursor: pointer;
+        min-height: 3.1rem;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .search-btn:hover { background: var(--button-hover); }
+      .search-btn:active { transform: scale(0.98); }
+      .search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+      .search-error {
+        color: var(--red);
+        font-size: 0.85rem;
+        margin-top: 0.6rem;
+        text-align: center;
+        min-height: 1.1em;
+      }
+
+      /* ── Selectable order-result cards (phone search) ─────────────── */
+      .result-card {
+        border: 1.5px solid var(--border);
+        border-radius: 1.1rem;
+        padding: 0.95rem 1.1rem;
+        margin-bottom: 0.7rem;
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 3.2rem;
+      }
+      .result-card:hover, .result-card:active {
+        border-color: var(--accent);
+        box-shadow: 0 3px 12px rgba(33,158,188,0.15);
+        transform: translateY(-1px);
+      }
+      .result-card-main { min-width: 0; }
+      .result-card-id { font-weight: 700; font-size: 0.95rem; color: var(--text); }
+      .result-card-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
+      .result-card-right { text-align: right; flex-shrink: 0; }
+      .result-card-total { font-weight: 700; color: var(--secondary); font-size: 0.92rem; }
+
+      /* ── Status badges ─────────────────────────────────────────── */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 2rem;
+      }
+      .badge-pending    { background: var(--gray-bg);   color: #616161; }
+      .badge-accepted   { background: var(--blue-bg);   color: var(--blue); }
+      .badge-preparing  { background: var(--orange-bg); color: var(--orange); }
+      .badge-delivering { background: var(--purple-bg); color: var(--purple); }
+      .badge-delivered  { background: var(--green-bg);  color: var(--green); }
+      .badge-cancelled  { background: var(--red-bg);    color: var(--red); }
+
+      /* ── Order status hero ─────────────────────────────────────── */
+      .status-hero {
+        text-align: center;
+        padding: 0.4rem 0 0.2rem;
+      }
+      .status-hero-id {
+        font-family: "Fredoka", cursive;
+        font-size: 1.05rem;
+        color: var(--accent);
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+      .status-hero-eta {
+        margin-top: 0.6rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .status-hero-eta strong { color: var(--text); }
+
+      /* ── Timeline ───────────────────────────────────────────────── */
+      .tl { display: flex; flex-direction: column; }
+      .tl-item { position: relative; display: flex; gap: 0.85rem; padding-bottom: 1.3rem; }
+      .tl-item:last-child { padding-bottom: 0; }
+      .tl-dot {
+        flex-shrink: 0;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: 50%;
+        background: var(--gray-bg);
+        margin-top: 0.1rem;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+      }
+      .tl-item:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        left: 0.5rem;
+        top: 1.2rem;
+        bottom: 0;
+        width: 2px;
+        background: var(--gray-bg);
+      }
+      .tl-item.reached .tl-dot { background: var(--green); color: #fff; }
+      .tl-item.reached:not(:last-child)::before { background: var(--green); }
+      .tl-item.current .tl-dot {
+        background: var(--secondary);
+        color: #fff;
+        box-shadow: 0 0 0 5px var(--orange-bg);
+      }
+      .tl-item.cancelled .tl-dot { background: var(--red); color: #fff; }
+      .tl-label { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+      .tl-time { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.1rem; }
+      .tl-item:not(.reached):not(.current) .tl-label,
+      .tl-item:not(.reached):not(.current) .tl-time { color: #b8b8c4; }
+
+      .cancelled-banner {
+        background: var(--red-bg);
+        color: var(--red);
+        border-radius: 1rem;
+        padding: 0.9rem 1rem;
+        font-weight: 700;
+        text-align: center;
+        font-size: 0.9rem;
+      }
+
+      /* ── Info rows ──────────────────────────────────────────────── */
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px solid #f4f4f8;
+        font-size: 0.9rem;
+      }
+      .info-row:last-child { border-bottom: none; }
+      .info-row .label { color: var(--text-muted); flex-shrink: 0; }
+      .info-row .value { font-weight: 700; text-align: right; }
+
+      /* ── Products table ─────────────────────────────────────────── */
+      .prod-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+      .prod-table th {
+        text-align: left;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        padding: 0 0 0.5rem;
+        border-bottom: 1.5px solid #f0f0f0;
+      }
+      .prod-table td { padding: 0.55rem 0; border-bottom: 1px solid #f7f7f7; }
+      .prod-table th:not(:first-child), .prod-table td:not(:first-child) { text-align: right; }
+      .prod-table tfoot td { border-bottom: none; padding-top: 0.7rem; font-weight: 700; }
+      .prod-table tfoot .grand-total { color: var(--secondary); font-size: 1.02rem; }
+
+      /* ── Buttons row ────────────────────────────────────────────── */
+      .btn-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+      .btn {
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 0.88rem;
+        border-radius: 1.2rem;
+        padding: 0.8rem 1.1rem;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4em;
+        flex: 1 1 auto;
+        min-height: 2.9rem;
+        transition: transform 0.1s, opacity 0.15s;
+      }
+      .btn:active { transform: scale(0.97); }
+      .btn-primary { background: var(--button); color: #fff; }
+      .btn-primary:hover { background: var(--button-hover); }
+      .btn-outline { background: #fff; color: var(--accent); border: 1.5px solid var(--accent); }
+      .btn-outline:hover { background: #eef8fb; }
+      .btn-ghost { background: #f4f4f8; color: var(--text); }
+      .btn-ghost:hover { background: #eaeaf0; }
+      .btn-whatsapp { background: #25d366; color: #fff; }
+      .btn-whatsapp:hover { background: #1fb958; }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+      /* ── Receipt ────────────────────────────────────────────────── */
+      .receipt-box {
+        border: 1.5px dashed var(--border);
+        border-radius: 1rem;
+        padding: 1rem 1.1rem;
+        font-size: 0.86rem;
+      }
+      .receipt-head { text-align: center; margin-bottom: 0.8rem; }
+      .receipt-head .biz-name { font-family: "Fredoka", cursive; font-size: 1.05rem; color: var(--accent); }
+      .receipt-head .receipt-sub { font-size: 0.75rem; color: var(--text-muted); }
+      .receipt-line { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+      .receipt-divider { border-top: 1px dashed var(--border); margin: 0.5rem 0; }
+
+      /* ── Satisfaction (placeholder, Phase 5.5) ─────────────────────── */
+      .satisfaction-stars {
+        font-size: 1.6rem;
+        letter-spacing: 0.2rem;
+        color: #d8d8e0;
+        text-align: center;
+        margin: 0.4rem 0 0.3rem;
+        user-select: none;
+      }
+      .satisfaction-note { text-align: center; font-size: 0.78rem; color: var(--text-muted); }
+
+      /* ── Skeletons ──────────────────────────────────────────────── */
+      @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: 200px 0; }
+      }
+      .skel {
+        background: linear-gradient(90deg, #f0f0f4 25%, #e6e6ee 37%, #f0f0f4 63%);
+        background-size: 400px 100%;
+        animation: shimmer 1.4s infinite linear;
+        border-radius: 0.5rem;
+      }
+      .skel-line { height: 0.9rem; margin-bottom: 0.6rem; }
+      .skel-dot { width: 1.05rem; height: 1.05rem; border-radius: 50%; }
+
+      /* ── Empty / error states ───────────────────────────────────── */
+      .state-box {
+        text-align: center;
+        padding: 2.2rem 1rem;
+      }
+      .state-box .emoji { font-size: 2.8rem; display: block; margin-bottom: 0.6rem; }
+      .state-box h3 { font-family: "Fredoka", cursive; font-size: 1.1rem; margin: 0 0 0.4rem; }
+      .state-box p { font-size: 0.9rem; color: var(--text-muted); margin: 0 0 1.1rem; }
+
+      .hidden { display: none !important; }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 1.4rem;
+        transform: translateX(-50%) translateY(120%);
+        background: #22223b;
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.7rem 1.2rem;
+        border-radius: 1rem;
+        z-index: 100;
+        transition: transform 0.25s ease;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+        max-width: 90vw;
+        text-align: center;
+      }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+
+      @media (max-width: 380px) {
+        .btn-row { flex-direction: column; }
+      }
+
+      /* ══════════════════════════════════════════════════════════════
+         PHASE 5.2 — CUSTOMER NOTIFICATIONS
+      ══════════════════════════════════════════════════════════════ */
+
+      /* ── Bell + badge (Part 6) ─────────────────────────────────── */
+      .notif-bell {
+        position: absolute;
+        top: 1.1rem;
+        right: 1rem;
+        background: rgba(255,255,255,0.22);
+        border: none;
+        border-radius: 50%;
+        width: 2.6rem;
+        height: 2.6rem;
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .notif-bell:hover { background: rgba(255,255,255,0.34); }
+      .notif-bell:active { transform: scale(0.94); }
+      .notif-badge {
+        position: absolute;
+        top: -0.15rem;
+        right: -0.15rem;
+        background: var(--button);
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 800;
+        min-width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0.28rem;
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+
+      /* ── Notification Center drawer (Part 2) ───────────────────── */
+      .notif-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(20,20,35,0.42);
+        z-index: 90;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      .notif-overlay.open { opacity: 1; pointer-events: auto; }
+      .notif-panel {
+        background: #fff;
+        width: 100%;
+        max-width: 560px;
+        max-height: 82vh;
+        border-top-left-radius: 1.6rem;
+        border-top-right-radius: 1.6rem;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+        box-shadow: 0 -8px 30px rgba(0,0,0,0.2);
+      }
+      .notif-overlay.open .notif-panel { transform: translateY(0); }
+      .notif-panel-handle {
+        width: 2.6rem;
+        height: 0.28rem;
+        background: #e0e0e6;
+        border-radius: 1rem;
+        margin: 0.7rem auto 0.2rem;
+      }
+      .notif-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1.2rem 0.6rem;
+        border-bottom: 1px solid #f0f0f4;
+      }
+      .notif-panel-head h2 {
+        font-family: "Fredoka", cursive;
+        font-size: 1.05rem;
+        margin: 0;
+      }
+      .notif-panel-actions { display: flex; gap: 0.6rem; align-items: center; }
+      .notif-mark-all-btn {
+        background: none;
+        border: none;
+        color: var(--accent);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 0.78rem;
+        cursor: pointer;
+        padding: 0.3rem 0.2rem;
+      }
+      .notif-close-btn {
+        background: #f4f4f8;
+        border: none;
+        border-radius: 50%;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .notif-panel-body {
+        overflow-y: auto;
+        padding: 0.9rem 1.1rem 1.4rem;
+        flex: 1;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* ── Notification cards ────────────────────────────────────── */
+      .notif-card {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.85rem 0.9rem;
+        border-radius: 1rem;
+        margin-bottom: 0.6rem;
+        background: #fafafd;
+        border: 1px solid #f2f2f6;
+        animation: notifIn 0.25s ease both;
+      }
+      @keyframes notifIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+      .notif-card.unread {
+        background: #fff8ea;
+        border-color: #ffe4a8;
+      }
+      .notif-card.announcement { background: #eef8fb; border-color: #cdeaf3; }
+      .notif-card.announcement.unread { background: #e2f3f8; border-color: #a9dcea; }
+      .notif-icon {
+        flex-shrink: 0;
+        width: 2.3rem;
+        height: 2.3rem;
+        border-radius: 50%;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      }
+      .notif-body { flex: 1; min-width: 0; }
+      .notif-top-row { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
+      .notif-title { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+      .notif-dot {
+        flex-shrink: 0;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--button);
+        margin-top: 0.35rem;
+      }
+      .notif-message { font-size: 0.83rem; color: var(--text-muted); margin-top: 0.15rem; line-height: 1.4; }
+      .notif-meta { font-size: 0.72rem; color: #b0b0bc; margin-top: 0.35rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .notif-meta .notif-order-tag { color: var(--accent); font-weight: 700; }
+
+      .notif-empty {
+        text-align: center;
+        padding: 2.4rem 1rem;
+        color: var(--text-muted);
+      }
+      .notif-empty .emoji { font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+
+      .notif-skel-card {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.85rem 0.9rem;
+        margin-bottom: 0.6rem;
+      }
+
+      /* ── Order Updates (Part 4) ────────────────────────────────── */
+      .updates-list { display: flex; flex-direction: column; }
+      .update-row {
+        display: flex;
+        gap: 0.7rem;
+        align-items: flex-start;
+        padding: 0.55rem 0;
+        border-bottom: 1px dashed #f0f0f4;
+      }
+      .update-row:last-child { border-bottom: none; }
+      .update-time { flex-shrink: 0; width: 4.6rem; font-size: 0.76rem; color: var(--text-muted); padding-top: 0.1rem; }
+      .update-icon { flex-shrink: 0; font-size: 1rem; }
+      .update-label { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+    </style>
+  </head>
+  <body>
+
+    <header>
+      <div class="header-logo">🍬 Swahili Treats</div>
+      <div class="header-sub">📦 Track Your Order</div>
+      <a class="header-sub" id="hub-link" href="customer-hub.html" style="display:inline-block;margin-top:0.3rem;text-decoration:underline;font-size:0.78rem;">💛 My Account &amp; Rewards</a>
+      <button type="button" class="notif-bell hidden" id="notif-bell-btn" aria-label="Notifications">
+        🔔
+        <span class="notif-badge hidden" id="notif-badge">0</span>
+      </button>
+    </header>
+
+    <main>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           SEARCH SECTION (Part 2 / Part 3)
+           Skipped automatically when ?order=, ?orders= or ?phone= is
+           present in the URL — see handleTrackingURL().
+      ══════════════════════════════════════════════════════════════ -->
+      <section id="search-section" class="card hidden">
+        <h2 class="section-title">🔍 Find Your Order</h2>
+
+        <div class="search-toggle">
+          <button type="button" id="toggle-order-id" class="active">Order ID</button>
+          <button type="button" id="toggle-phone">Phone Number</button>
+        </div>
+
+        <form id="search-form">
+          <div class="search-field" id="field-order-id">
+            <label for="input-order-id">Order ID</label>
+            <input type="text" id="input-order-id" placeholder="e.g. ST-20260708-AB12" autocomplete="off" />
+          </div>
+          <div class="search-field hidden" id="field-phone">
+            <label for="input-phone">Phone Number</label>
+            <input type="tel" id="input-phone" placeholder="e.g. 0712345678" autocomplete="tel" />
+          </div>
+          <button type="submit" class="search-btn" id="search-submit-btn">Search</button>
+          <div class="search-error" id="search-error"></div>
+        </form>
+      </section>
+
+      <!-- ── Phone-search results: selectable order cards ──────────────── -->
+      <section id="results-section" class="card hidden">
+        <h2 class="section-title">📋 Your Orders</h2>
+        <div id="results-list"></div>
+        <button type="button" class="btn btn-ghost" style="width:100%;margin-top:0.4rem" id="results-search-again-btn">🔁 Search Again</button>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           LOADING SKELETON (Part 11)
+      ══════════════════════════════════════════════════════════════ -->
+      <section id="loading-section" class="hidden">
+        <div class="card">
+          <div class="skel skel-line" style="width:40%;margin:0 auto 0.8rem"></div>
+          <div class="skel skel-line" style="width:60%;height:1.6rem;margin:0 auto 1rem;border-radius:2rem"></div>
+        </div>
+        <div class="card">
+          <div class="skel skel-line" style="width:30%"></div>
+          <div style="display:flex;gap:0.85rem;margin-bottom:1rem">
+            <div class="skel skel-dot"></div>
+            <div style="flex:1">
+              <div class="skel skel-line" style="width:40%"></div>
+              <div class="skel skel-line" style="width:25%;height:0.7rem"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:0.85rem;margin-bottom:1rem">
+            <div class="skel skel-dot"></div>
+            <div style="flex:1">
+              <div class="skel skel-line" style="width:35%"></div>
+              <div class="skel skel-line" style="width:20%;height:0.7rem"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="skel skel-line" style="width:50%"></div>
+          <div class="skel skel-line" style="width:90%"></div>
+          <div class="skel skel-line" style="width:70%"></div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           ERROR / NOT-FOUND STATE (Part 10 / Part 13)
+      ══════════════════════════════════════════════════════════════ -->
+      <section id="error-section" class="card hidden">
+        <div class="state-box">
+          <span class="emoji" id="error-emoji">🔍</span>
+          <h3 id="error-title">We couldn't find an order matching your search.</h3>
+          <p id="error-detail">Double-check the Order ID or phone number and try again.</p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="error-search-again-btn">🔁 Search Again</button>
+            <button type="button" class="btn btn-ghost" id="error-home-btn">🏠 Return Home</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           ORDER DETAIL VIEW (Parts 4–9, 16, 18, 19)
+      ══════════════════════════════════════════════════════════════ -->
+      <section id="order-section" class="hidden">
+
+        <!-- Status hero -->
+        <div class="card">
+          <div class="status-hero">
+            <div class="status-hero-id" id="od-order-id">—</div>
+            <span class="status-badge" id="od-status-badge">—</span>
+            <div class="status-hero-eta" id="od-eta"></div>
+          </div>
+        </div>
+
+        <!-- Cancelled banner (only shown for a cancelled order) -->
+        <div class="card hidden" id="od-cancelled-card">
+          <div class="cancelled-banner">❌ This order was cancelled.</div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card" id="od-timeline-card">
+          <h2 class="section-title">🚚 Delivery Progress</h2>
+          <div class="tl" id="od-timeline"></div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             PHASE 5.2 — Order Updates (Part 4)
+             A chronological (oldest → newest) log of this order's own
+             status-change notifications, built from the exact same
+             createNotification()/loadNotifications() data that powers
+             the Notification Center — see the JS module below.
+        ══════════════════════════════════════════════════════════════ -->
+        <div class="card hidden" id="od-updates-card">
+          <h2 class="section-title">🔔 Order Updates</h2>
+          <div class="updates-list" id="od-updates-list"></div>
+        </div>
+
+        <!-- Order info -->
+        <div class="card">
+          <h2 class="section-title">📄 Order Information</h2>
+          <div class="info-row"><span class="label">Order ID</span><span class="value" id="od-info-orderid">—</span></div>
+          <div class="info-row"><span class="label">Customer Name</span><span class="value" id="od-info-name">—</span></div>
+          <div class="info-row"><span class="label">Phone Number</span><span class="value" id="od-info-phone">—</span></div>
+          <div class="info-row"><span class="label">Campus</span><span class="value" id="od-info-campus">—</span></div>
+          <div class="info-row"><span class="label">Hostel</span><span class="value" id="od-info-hostel">—</span></div>
+          <div class="info-row"><span class="label">Room</span><span class="value" id="od-info-room">—</span></div>
+          <div class="info-row"><span class="label">Order Date</span><span class="value" id="od-info-date">—</span></div>
+        </div>
+
+        <!-- Products -->
+        <div class="card">
+          <h2 class="section-title">🛍️ Ordered Products</h2>
+          <table class="prod-table">
+            <thead>
+              <tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+            </thead>
+            <tbody id="od-products-body"></tbody>
+            <tfoot>
+              <tr><td colspan="3">Payment Method</td><td id="od-payment-method">Cash on Delivery</td></tr>
+              <tr><td colspan="3">Grand Total</td><td class="grand-total" id="od-grand-total">Ksh 0</td></tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Share tracking link -->
+        <div class="card">
+          <h2 class="section-title">🔗 Share This Tracking Link</h2>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 0.9rem">
+            Anyone with this link can see live delivery progress for this order — handy for sending to a friend or roommate.
+          </p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="share-link-btn">📤 Share Tracking Link</button>
+            <button type="button" class="btn btn-outline" id="copy-link-btn">📋 Copy Link</button>
+          </div>
+        </div>
+
+        <!-- Receipt (Part 18) -->
+        <div class="card">
+          <h2 class="section-title">🧾 Receipt</h2>
+          <div class="receipt-box" id="od-receipt"></div>
+          <div class="btn-row" style="margin-top:0.9rem">
+            <button type="button" class="btn btn-ghost" id="receipt-download-btn">⬇️ Download PDF</button>
+            <button type="button" class="btn btn-ghost" id="receipt-print-btn">🖨️ Print</button>
+            <button type="button" class="btn btn-ghost" id="receipt-email-btn">✉️ Email Receipt</button>
+          </div>
+        </div>
+
+        <!-- Satisfaction placeholder (Part 19 — only shown once delivered) -->
+        <div class="card hidden" id="od-satisfaction-card">
+          <h2 class="section-title">💛 How Was Your Experience?</h2>
+          <div class="satisfaction-stars" id="satisfaction-stars" aria-disabled="true">★★★★★</div>
+          <p class="satisfaction-note">Ratings &amp; reviews are coming soon!</p>
+        </div>
+
+        <!-- Need Help (Part 9) -->
+        <div class="card hidden" id="help-card">
+          <h2 class="section-title">🆘 Need Help?</h2>
+          <div class="btn-row">
+            <a class="btn btn-outline hidden" id="help-call-btn" href="#">📞 Call Support</a>
+            <a class="btn btn-whatsapp hidden" id="help-whatsapp-btn" href="#" target="_blank" rel="noopener">💬 WhatsApp Support</a>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-ghost" style="width:100%" id="track-search-again-btn">🔁 Track a Different Order</button>
+      </section>
+
+    </main>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         PHASE 5.2 — Notification Center (Part 2)
+         Mixes derived order-status notifications with active
+         announcements (Part 8), reverse-chronological, for the whole
+         phone number currently in context — not just the order on
+         screen (see currentPhone / loadNotifications() in the JS).
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="notif-overlay" id="notif-overlay">
+      <div class="notif-panel">
+        <div class="notif-panel-handle"></div>
+        <div class="notif-panel-head">
+          <h2>🔔 Notifications</h2>
+          <div class="notif-panel-actions">
+            <button type="button" class="notif-mark-all-btn" id="notif-mark-all-btn">Mark all read</button>
+            <button type="button" class="notif-close-btn" id="notif-close-btn" aria-label="Close">✕</button>
+          </div>
+        </div>
+        <div class="notif-panel-body" id="notif-panel-body">
+          <!-- populated by renderNotificationCenter() -->
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // ═══════════════════════════════════════════════════════════════════
+      // PHASE 5.1 — CUSTOMER ORDER TRACKING (track.html)
+      //
+      // Read-only, customer-facing page. Never writes to the `orders`
+      // table and never touches admin/employee tables. Built to reuse
+      // the exact same status vocabulary (pending/accepted/claimed/
+      // preparing/in_progress/delivering/out_for_delivery/delivered)
+      // and workflow timestamp columns (accepted_at,
+      // preparation_started_at, delivery_started_at, delivered_at /
+      // completed_at) that the Admin Dashboard and Employee Portal
+      // already use — so nothing about those systems changes.
+      //
+      // ── PART 15 — QR CODE READY ARCHITECTURE ────────────────────────
+      // This page's *only* required entry point is:
+      //     track.html?order=ORDER_ID
+      // handleTrackingURL() reads that param and loads the order
+      // immediately, skipping the search form. That is exactly the URL
+      // a future QR code should encode — printing a QR code later is
+      // just "generate an image of this URL", no code changes here.
+      //
+      // ── PART 17 — FUTURE SMS / WHATSAPP / EMAIL COMPATIBILITY ───────
+      // buildTrackingUrl(orderCode) below is the single source of truth
+      // for that URL. A future notifications feature (SMS/WhatsApp/
+      // Email sent right after checkout, or from an admin/employee
+      // "notify customer" action) should call buildTrackingUrl() and
+      // hand the result to whatever provider is wired up — this page
+      // itself needs no changes to support that.
+      // ═══════════════════════════════════════════════════════════════════
+
+      const SUPABASE_URL = "https://hamqmvjucrvsjhqfsehe.supabase.co";
+      const SUPABASE_ANON = "sb_publishable_8g8mp-PH2uvpPR4RbTmGsg_kdXw9fXb";
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      // ── Configurable ETA windows (Part 6) ─────────────────────────────
+      const ETA_CONFIG = {
+        pending:           "20–30 mins",
+        accepted:          "15–20 mins",
+        claimed:           "15–20 mins",
+        preparing:         "10–15 mins",
+        in_progress:       "10–15 mins",
+        delivering:        "5–10 mins",
+        out_for_delivery:  "5–10 mins",
+        delivered:         "Completed",
+        cancelled:         "—",
+      };
+
+      const STATUS_BADGE = {
+        pending:          { label: "Pending",          cls: "badge-pending"    },
+        accepted:         { label: "Accepted",         cls: "badge-accepted"   },
+        claimed:          { label: "Accepted",         cls: "badge-accepted"   },
+        preparing:        { label: "Preparing",        cls: "badge-preparing"  },
+        in_progress:      { label: "Preparing",        cls: "badge-preparing"  },
+        delivering:       { label: "Out for Delivery", cls: "badge-delivering" },
+        out_for_delivery: { label: "Out for Delivery", cls: "badge-delivering" },
+        delivered:        { label: "Delivered",        cls: "badge-delivered"  },
+        cancelled:        { label: "Cancelled",        cls: "badge-cancelled"  },
+      };
+
+      const STAGE_KEYS = ["received", "accepted", "preparing", "delivering", "delivered"];
+      const STAGE_STATUS_MAP = {
+        pending: "received",
+        accepted: "accepted", claimed: "accepted",
+        preparing: "preparing", in_progress: "preparing",
+        delivering: "delivering", out_for_delivery: "delivering",
+        delivered: "delivered",
+      };
+
+      // For now the business only accepts Cash on Delivery — there is no
+      // `payment_method` column anywhere in the schema yet. Rather than add
+      // one (schema changes are avoided per Phase 5.1's brief unless truly
+      // necessary), this is a single named constant so it's a one-line
+      // change to wire up real payment methods later.
+      const DEFAULT_PAYMENT_METHOD = "Cash on Delivery";
+
+      let currentOrder = null;          // the order currently on screen
+      let trackRealtimeCh = null;       // this order's dedicated realtime channel
+      let searchMode = "order";         // "order" | "phone"
+
+      // ═══════════════════════════════════════════════════════════════
+      // HELPERS
+      // ═══════════════════════════════════════════════════════════════
+      function escHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+      function ksh(n) { return `Ksh ${(Number(n) || 0).toLocaleString()}`; }
+      function fmtDateTime(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "—";
+        return d.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+      }
+      function normalizeStatus(status) {
+        return { claimed: "accepted", in_progress: "preparing", out_for_delivery: "delivering" }[status] || status || "pending";
+      }
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), 2600);
+      }
+      function show(id) { document.getElementById(id).classList.remove("hidden"); }
+      function hide(id) { document.getElementById(id).classList.add("hidden"); }
+      function hideAllSections() {
+        ["search-section", "results-section", "loading-section", "error-section", "order-section"].forEach(hide);
+      }
+
+      /** Canonical tracking URL builder — the one place this format lives. */
+      function buildTrackingUrl(orderCode) {
+        return new URL(`track.html?order=${encodeURIComponent(orderCode)}`, window.location.href).toString();
+      }
+
+      function calculateETA(status) {
+        return ETA_CONFIG[status] || ETA_CONFIG.pending;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §2/§3 — SEARCH (Order ID or Phone Number)
+      // ═══════════════════════════════════════════════════════════════
+      function setSearchMode(mode) {
+        searchMode = mode;
+        document.getElementById("toggle-order-id").classList.toggle("active", mode === "order");
+        document.getElementById("toggle-phone").classList.toggle("active", mode === "phone");
+        document.getElementById("field-order-id").classList.toggle("hidden", mode !== "order");
+        document.getElementById("field-phone").classList.toggle("hidden", mode !== "phone");
+        document.getElementById("search-error").textContent = "";
+      }
+      document.getElementById("toggle-order-id").addEventListener("click", () => setSearchMode("order"));
+      document.getElementById("toggle-phone").addEventListener("click", () => setSearchMode("phone"));
+
+      function showSearchForm() {
+        hideAllSections();
+        show("search-section");
+        history.replaceState(null, "", "track.html");
+      }
+      document.getElementById("results-search-again-btn").addEventListener("click", showSearchForm);
+      document.getElementById("error-search-again-btn").addEventListener("click", showSearchForm);
+      document.getElementById("track-search-again-btn").addEventListener("click", showSearchForm);
+      document.getElementById("error-home-btn").addEventListener("click", () => { window.location.href = "index.html"; });
+
+      /** Reusable dispatcher — decides whether we're looking up a single
+       *  order by code or a batch of orders by phone number. */
+      async function searchOrders({ orderId, phone } = {}) {
+        const errorEl = document.getElementById("search-error");
+        errorEl.textContent = "";
+
+        if (orderId) {
+          await loadOrder(orderId.trim());
+          return;
+        }
+        if (phone) {
+          await loadOrdersByPhone(phone.trim());
+          return;
+        }
+        errorEl.textContent = "Please enter an Order ID or phone number.";
+      }
+
+      document.getElementById("search-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("search-submit-btn");
+        btn.disabled = true;
+        const prevLabel = btn.textContent;
+        btn.textContent = "Searching…";
+        try {
+          if (searchMode === "order") {
+            const val = document.getElementById("input-order-id").value.trim();
+            if (!val) { document.getElementById("search-error").textContent = "Please enter your Order ID."; return; }
+            await searchOrders({ orderId: val });
+          } else {
+            const val = document.getElementById("input-phone").value.trim();
+            if (!val) { document.getElementById("search-error").textContent = "Please enter your phone number."; return; }
+            await searchOrders({ phone: val });
+          }
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prevLabel;
+        }
+      });
+
+      /** §5/§4 — fetch + render a single order by its human-readable code.
+       *  Never selects internal primary keys, employee fields, or
+       *  anything beyond what a customer should see (Part 4 / Part 20). */
+      async function loadOrder(orderCode) {
+        hideAllSections();
+        show("loading-section");
+
+        try {
+          const { data, error } = await db
+            .rpc("get_order_for_tracking", { p_order_id: orderCode })
+            .maybeSingle();
+
+          if (error) {
+            console.error("loadOrder error:", error);
+            renderErrorState({
+              emoji: "⚠️",
+              title: "Something went wrong",
+              detail: "We couldn't reach our servers just now. Please check your connection and try again.",
+            });
+            return;
+          }
+          if (!data) {
+            renderErrorState({
+              emoji: "🔍",
+              title: "We couldn't find an order matching your search.",
+              detail: `No order was found for "${escHtml(orderCode)}". Double-check the ID and try again.`,
+            });
+            return;
+          }
+
+          currentOrder = data;
+          await renderOrder(data);
+          subscribeRealtime(data.order_id);
+          setCustomerPhoneContext(data.phone); // Phase 5.2 — powers the bell + Notification Center
+          history.replaceState(null, "", `track.html?order=${encodeURIComponent(data.order_id)}`);
+        } catch (err) {
+          console.error("loadOrder unexpected error:", err);
+          renderErrorState({
+            emoji: "⚠️",
+            title: "Something went wrong",
+            detail: "An unexpected error occurred. Please try again in a moment.",
+          });
+        }
+      }
+
+      /** §2 — phone search → selectable order cards. Bounded to the 20
+       *  most recent orders for that number, for performance (Part 21). */
+      async function loadOrdersByPhone(phone) {
+        hideAllSections();
+        show("loading-section");
+
+        try {
+          const { data, error } = await db
+            .rpc("get_orders_by_phone", { p_phone: phone, p_limit: 20 });
+
+          if (error) {
+            console.error("loadOrdersByPhone error:", error);
+            renderErrorState({
+              emoji: "⚠️",
+              title: "Something went wrong",
+              detail: "We couldn't reach our servers just now. Please check your connection and try again.",
+            });
+            return;
+          }
+          if (!data || data.length === 0) {
+            renderErrorState({
+              emoji: "📭",
+              title: "No orders found yet.",
+              detail: `We couldn't find any orders for "${escHtml(phone)}".`,
+            });
+            return;
+          }
+
+          renderOrderResultsList(data);
+          setCustomerPhoneContext(phone); // Phase 5.2 — powers the bell + Notification Center
+        } catch (err) {
+          console.error("loadOrdersByPhone unexpected error:", err);
+          renderErrorState({
+            emoji: "⚠️",
+            title: "Something went wrong",
+            detail: "An unexpected error occurred. Please try again in a moment.",
+          });
+        }
+      }
+
+      function renderOrderResultsList(orders) {
+        hideAllSections();
+        show("results-section");
+        const listEl = document.getElementById("results-list");
+        listEl.innerHTML = orders.map(o => {
+          const sd = STATUS_BADGE[normalizeStatus(o.status)] || STATUS_BADGE.pending;
+          return `
+            <div class="result-card" onclick="loadOrder('${escHtml(o.order_id)}')">
+              <div class="result-card-main">
+                <div class="result-card-id">${escHtml(o.order_id)}</div>
+                <div class="result-card-meta">${escHtml(o.product || "")} · ${fmtDateTime(o.created_at)}</div>
+              </div>
+              <div class="result-card-right">
+                <div class="result-card-total">${ksh(o.total_price)}</div>
+                <span class="status-badge ${sd.cls}" style="margin-top:0.3rem;font-size:0.72rem;padding:0.25rem 0.6rem">${escHtml(sd.label)}</span>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      function renderErrorState({ emoji, title, detail }) {
+        hideAllSections();
+        show("error-section");
+        document.getElementById("error-emoji").textContent = emoji;
+        document.getElementById("error-title").textContent = title;
+        document.getElementById("error-detail").textContent = detail;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §4/§5/§6/§8 — RENDER ORDER DETAIL
+      // ═══════════════════════════════════════════════════════════════
+      async function renderOrder(order) {
+        hideAllSections();
+        show("order-section");
+
+        const normalized = normalizeStatus(order.status);
+        const sd = STATUS_BADGE[normalized] || STATUS_BADGE.pending;
+
+        document.getElementById("od-order-id").textContent = order.order_id;
+        const badgeEl = document.getElementById("od-status-badge");
+        badgeEl.className = `status-badge ${sd.cls}`;
+        badgeEl.textContent = sd.label;
+
+        const etaEl = document.getElementById("od-eta");
+        etaEl.innerHTML = normalized === "cancelled"
+          ? ""
+          : `Estimated delivery: <strong>${escHtml(calculateETA(order.status))}</strong>`;
+
+        renderTimeline(order);
+        renderOrderUpdates(order); // Phase 5.2 — Part 4
+
+        document.getElementById("od-info-orderid").textContent = order.order_id;
+        document.getElementById("od-info-name").textContent   = order.customer_name || "—";
+        document.getElementById("od-info-phone").textContent  = order.phone || "—";
+        document.getElementById("od-info-campus").textContent = order.campus || "—";
+        document.getElementById("od-info-hostel").textContent = order.hostel || "—";
+        document.getElementById("od-info-room").textContent   = order.room || "—";
+        document.getElementById("od-info-date").textContent   = fmtDateTime(order.created_at);
+
+        await renderProducts(order);
+
+        // Satisfaction placeholder — only for delivered orders (Part 19)
+        document.getElementById("od-satisfaction-card").classList.toggle("hidden", normalized !== "delivered");
+
+        renderReceipt(order);
+        renderSupportSection();
+      }
+
+      /** §5 — vertical progress tracker with per-stage timestamps. */
+      function renderTimeline(order) {
+        const normalized = normalizeStatus(order.status);
+
+        if (normalized === "cancelled") {
+          hide("od-timeline-card");
+          show("od-cancelled-card");
+          return;
+        }
+        hide("od-cancelled-card");
+        show("od-timeline-card");
+
+        const stage = STAGE_STATUS_MAP[order.status] || "received";
+        const currentIdx = STAGE_KEYS.indexOf(stage);
+
+        const steps = [
+          { label: "Order Received",   ts: order.created_at },
+          { label: "Accepted",         ts: order.accepted_at },
+          { label: "Preparing",        ts: order.preparation_started_at },
+          { label: "Out For Delivery", ts: order.delivery_started_at },
+          { label: "Delivered",        ts: order.delivered_at || order.completed_at },
+        ];
+
+        document.getElementById("od-timeline").innerHTML = steps.map((s, i) => {
+          const reached = i <= currentIdx;
+          const isCurrent = i === currentIdx;
+          const icon = reached && !isCurrent ? "✓" : (isCurrent && stage !== "delivered" ? "" : (isCurrent ? "✓" : ""));
+          return `
+            <div class="tl-item ${reached ? "reached" : ""} ${isCurrent ? "current" : ""}">
+              <div class="tl-dot">${icon}</div>
+              <div>
+                <div class="tl-label">${escHtml(s.label)}</div>
+                <div class="tl-time">${s.ts ? escHtml(fmtDateTime(s.ts)) : (reached ? "—" : "Pending")}</div>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      /** §4 — ordered products table. Tries `order_items` first (so a
+       *  future multi-item-per-order model needs zero changes here), and
+       *  gracefully falls back to this order's own flat product/quantity/
+       *  price columns — which is how every order in this system works
+       *  today (see products.html's checkout: one order row per product). */
+      async function renderProducts(order) {
+        let items = [];
+        try {
+          const { data } = await db
+            .from("order_items")
+            .select("quantity, unit_price:price, products(name)")
+            .eq("order_id", order.order_id);
+          if (data && data.length > 0) {
+            items = data.map(r => ({
+              name: r.products?.name || "—",
+              qty: Number(r.quantity) || 0,
+              unitPrice: Number(r.unit_price) || 0,
+            }));
+          }
+        } catch (e) { /* order_items may not be readable/exist for this row — fall back below */ }
+
+        if (items.length === 0) {
+          items = [{
+            name: order.product || "—",
+            qty: Number(order.quantity) || 0,
+            unitPrice: Number(order.unit_price) || 0,
+          }];
+        }
+
+        const tbody = document.getElementById("od-products-body");
+        tbody.innerHTML = items.map(it => `
+          <tr>
+            <td>${escHtml(it.name)}</td>
+            <td>${it.qty}</td>
+            <td>${ksh(it.unitPrice)}</td>
+            <td>${ksh(it.qty * it.unitPrice)}</td>
+          </tr>`).join("");
+
+        const grandTotal = Number(order.total_price) || items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+        document.getElementById("od-grand-total").textContent = ksh(grandTotal);
+        document.getElementById("od-payment-method").textContent = DEFAULT_PAYMENT_METHOD;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §18 — RECEIPT COMPONENT (display-only for now)
+      // ═══════════════════════════════════════════════════════════════
+      function renderReceipt(order) {
+        const el = document.getElementById("od-receipt");
+        const sd = STATUS_BADGE[normalizeStatus(order.status)] || STATUS_BADGE.pending;
+        el.innerHTML = `
+          <div class="receipt-head">
+            <div class="biz-name">🍬 Swahili Treats</div>
+            <div class="receipt-sub">Order Receipt</div>
+          </div>
+          <div class="receipt-line"><span>Order #</span><span>${escHtml(order.order_id)}</span></div>
+          <div class="receipt-line"><span>Date</span><span>${fmtDateTime(order.created_at)}</span></div>
+          <div class="receipt-divider"></div>
+          <div class="receipt-line"><span>${escHtml(order.product || "Item")} × ${order.quantity ?? 1}</span><span>${ksh(order.total_price)}</span></div>
+          <div class="receipt-divider"></div>
+          <div class="receipt-line"><span>Payment Method</span><span>${DEFAULT_PAYMENT_METHOD}</span></div>
+          <div class="receipt-line"><span>Status</span><span>${escHtml(sd.label)}</span></div>
+          <div class="receipt-divider"></div>
+          <div class="receipt-line" style="font-weight:700"><span>Total</span><span>${ksh(order.total_price)}</span></div>
+        `;
+      }
+
+      // Placeholder handlers — intentionally not implemented yet (Part 18
+      // says "do not implement PDF generation yet"). Wiring these up later
+      // (e.g. a PDF lib for download/email, native window.print() for
+      // printing) needs no changes anywhere else on this page.
+      document.getElementById("receipt-download-btn").addEventListener("click", () => {
+        showToast("PDF download is coming soon!"); // TODO: Phase 5.x — PDF export
+      });
+      document.getElementById("receipt-print-btn").addEventListener("click", () => {
+        showToast("Printing is coming soon!"); // TODO: Phase 5.x — dedicated print view
+      });
+      document.getElementById("receipt-email-btn").addEventListener("click", () => {
+        showToast("Emailing your receipt is coming soon!"); // TODO: Phase 5.x — email receipt
+      });
+
+      // ═══════════════════════════════════════════════════════════════
+      // §9 — NEED HELP (sourced from the existing `settings` table)
+      // ═══════════════════════════════════════════════════════════════
+      async function renderSupportSection() {
+        const helpCard = document.getElementById("help-card");
+        const callBtn = document.getElementById("help-call-btn");
+        const waBtn = document.getElementById("help-whatsapp-btn");
+        hide("help-card");
+        callBtn.classList.add("hidden");
+        waBtn.classList.add("hidden");
+
+        try {
+          const { data, error } = await db
+            .from("settings")
+            .select("setting_key, setting_value")
+            .in("setting_key", ["support_phone_number", "contact_whatsapp_number", "support_message_template", "business_name"]);
+          if (error || !data) return;
+
+          const map = {};
+          data.forEach(r => { map[r.setting_key] = r.setting_value; });
+
+          let anyVisible = false;
+
+          if (map.support_phone_number) {
+            callBtn.href = `tel:${String(map.support_phone_number).replace(/[^\d+]/g, "")}`;
+            callBtn.classList.remove("hidden");
+            anyVisible = true;
+          }
+          if (map.contact_whatsapp_number) {
+            const cleanNumber = String(map.contact_whatsapp_number).replace(/\D/g, "");
+            const template = map.support_message_template || "Hi {{business_name}}, I need help with something.";
+            const message = template.replace(/\{\{\s*business_name\s*\}\}/g, map.business_name || "Swahili Treats");
+            waBtn.href = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+            waBtn.classList.remove("hidden");
+            anyVisible = true;
+          }
+
+          if (anyVisible) show("help-card");
+        } catch (e) {
+          console.error("renderSupportSection error:", e);
+          // Fail silently — Need Help is a nice-to-have, never block the page on it.
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §16 — SHARE TRACKING LINK
+      // ═══════════════════════════════════════════════════════════════
+      async function shareTrackingLink(orderCode) {
+        const url = buildTrackingUrl(orderCode);
+        const shareData = { title: "Track my Swahili Treats order", text: `Track my order ${orderCode}:`, url };
+        if (navigator.share) {
+          try { await navigator.share(shareData); }
+          catch (e) { /* user cancelled the native share sheet — no-op */ }
+        } else {
+          await copyTrackingLink(orderCode);
+        }
+      }
+      async function copyTrackingLink(orderCode) {
+        const url = buildTrackingUrl(orderCode);
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast("Tracking link copied! 📋");
+        } catch (e) {
+          showToast("Couldn't copy the link — please copy it from the address bar.");
+        }
+      }
+      document.getElementById("share-link-btn").addEventListener("click", () => {
+        if (currentOrder) shareTrackingLink(currentOrder.order_id);
+      });
+      document.getElementById("copy-link-btn").addEventListener("click", () => {
+        if (currentOrder) copyTrackingLink(currentOrder.order_id);
+      });
+
+      // ═══════════════════════════════════════════════════════════════
+      // §7/§10 — REALTIME UPDATES (Part 7 / Part 13)
+      // ═══════════════════════════════════════════════════════════════
+      function subscribeRealtime(orderCode) {
+        if (trackRealtimeCh) {
+          db.removeChannel(trackRealtimeCh);
+          trackRealtimeCh = null;
+        }
+        try {
+          trackRealtimeCh = db
+            .channel(`track-order-${orderCode}`)
+            .on(
+              "postgres_changes",
+              { event: "UPDATE", schema: "public", table: "orders", filter: `order_id=eq.${orderCode}` },
+              (payload) => {
+                if (!currentOrder || currentOrder.order_id !== orderCode) return;
+                currentOrder = { ...currentOrder, ...payload.new };
+                renderOrder(currentOrder);
+                showToast("📦 Order updated!");
+              }
+            )
+            .subscribe((status) => {
+              if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                // Realtime disconnect is non-fatal — the order is already on
+                // screen; the customer can still pull-to-refresh their browser.
+                console.warn("Tracking realtime channel issue:", status);
+              }
+            });
+        } catch (e) {
+          console.error("subscribeRealtime error:", e);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §3 — DIRECT TRACKING LINKS / URL HANDLING
+      // ═══════════════════════════════════════════════════════════════
+      function handleTrackingURL() {
+        const params = new URLSearchParams(window.location.search);
+        const orderParam = params.get("order");
+        const ordersParam = params.get("orders"); // comma-separated — supports multi-item checkouts
+        const phoneParam = params.get("phone");
+
+        if (orderParam) {
+          loadOrder(orderParam.trim());
+          return;
+        }
+        if (ordersParam) {
+          const codes = ordersParam.split(",").map(s => s.trim()).filter(Boolean);
+          if (codes.length === 1) { loadOrder(codes[0]); return; }
+          if (codes.length > 1) {
+            db.rpc("get_orders_by_ids", { p_order_ids: codes })
+              .then(({ data, error }) => {
+                if (error || !data || data.length === 0) {
+                  renderErrorState({ emoji: "🔍", title: "We couldn't find an order matching your search.", detail: "Please try searching manually below." });
+                  return;
+                }
+                renderOrderResultsList(data);
+                if (data[0]?.phone) setCustomerPhoneContext(data[0].phone); // Phase 5.2
+              });
+            return;
+          }
+        }
+        if (phoneParam) {
+          document.getElementById("input-phone").value = phoneParam;
+          setSearchMode("phone");
+          loadOrdersByPhone(phoneParam.trim());
+          return;
+        }
+
+        showSearchForm();
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // PHASE 5.2 — CUSTOMER NOTIFICATIONS
+      //
+      // ── ARCHITECTURE NOTE (Part 1 / Part 11) ────────────────────────────
+      // Customers have no accounts, and the existing `orders` table already
+      // records every stage transition this feature needs to announce —
+      // created_at, accepted_at, preparation_started_at,
+      // delivery_started_at, delivered_at/completed_at — all written by
+      // the *existing, untouched* employee acceptance/delivery workflow.
+      // So rather than stand up a parallel `customer_notifications` table
+      // that the app would have to keep in sync by hand (and that nothing
+      // here can actually provision — this build has no database-migration
+      // channel), order-status notifications are DERIVED live from that
+      // same data by deriveOrderNotifications() below. Zero duplicate
+      // writes, zero drift risk, and it updates the instant Realtime
+      // delivers a change — see Part 3 ("Do not duplicate business logic").
+      //
+      // The one piece that's genuinely per-viewer, not per-order — read/
+      // unread state — is kept in localStorage via the tiny
+      // NotificationReadStore below. That's a deliberate, documented
+      // choice: it needs no schema at all, and it's exactly the kind of
+      // thing Part 11 means by "only create a new table if absolutely
+      // necessary." If the product later needs read-state to sync across
+      // a customer's devices, swap NotificationReadStore's three methods
+      // for calls to a real `customer_notifications` table using the exact
+      // columns Part 11 lists (id, order_id, phone_number, title, message,
+      // notification_type, is_read, created_at) — every call site here
+      // already goes through this one object, so nothing else changes.
+      //
+      // ── PART 10/18 — FUTURE PUSH / SMS / WHATSAPP / EMAIL ───────────────
+      // loadNotifications() is the single place a notification list gets
+      // built, and createNotification()/deriveOrderNotifications() is the
+      // single place one gets *shaped*. A future channel (Web Push, SMS,
+      // WhatsApp, Email) should hook in right where a new notification
+      // first appears in subscribeToNotifications()'s realtime callback —
+      // send through the new channel there, using the same notification
+      // object already being built for the UI. No changes to the
+      // rendering functions (renderNotificationCard/Center/OrderUpdates)
+      // would be needed. See track-sw.js for the matching Web Push
+      // service-worker hook (currently an inert, documented stub).
+      // ═══════════════════════════════════════════════════════════════════
+
+      let currentPhone   = null;   // the phone number the bell/center is currently scoped to
+      let notifCache     = [];     // last merged, sorted (desc) notification list
+      let notifRealtimeCh = null;  // Phase 5.2's own realtime channel — separate from subscribeRealtime()
+      let notifPanelOpen  = false;
+
+      // ── Configurable per-stage copy (Part 3 / Part 17) ──────────────────
+      const NOTIF_TEMPLATES = {
+        received:   { icon: "🧾", title: "Order Received",     message: (o) => `We've received your order #${o.order_id}. We're getting started!` },
+        accepted:   { icon: "✅", title: "Order Accepted",     message: (o) => `Your order #${o.order_id} has been accepted and is now being prepared.` },
+        preparing:  { icon: "👩‍🍳", title: "Preparing",          message: (o) => `Your order #${o.order_id} is being prepared with love.` },
+        delivering: { icon: "🚚", title: "Out for Delivery",   message: (o) => `Your order #${o.order_id} is on its way to you!` },
+        delivered:  { icon: "🎉", title: "Delivered",          message: (o) => `Your order #${o.order_id} has been delivered. Enjoy!` },
+        cancelled:  { icon: "❌", title: "Order Cancelled",    message: (o) => `Your order #${o.order_id} was cancelled.` },
+      };
+      // Which order column holds the timestamp for each stage.
+      const STAGE_TIMESTAMP_FIELD = {
+        received: "created_at",
+        accepted: "accepted_at",
+        preparing: "preparation_started_at",
+        delivering: "delivery_started_at",
+        delivered: "delivered_at",
+      };
+
+      // ── Read/unread persistence (see architecture note above) ──────────
+      const NotificationReadStore = (() => {
+        const KEY = "swahili_treats_notif_read_ids";
+        const read = () => { try { return new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch { return new Set(); } };
+        const write = (set) => { try { localStorage.setItem(KEY, JSON.stringify([...set])); } catch { /* storage unavailable — read state just won't persist */ } };
+        return {
+          isRead(id) { return read().has(id); },
+          markRead(id) { const s = read(); s.add(id); write(s); },
+          markManyRead(ids) { const s = read(); ids.forEach(id => s.add(id)); write(s); },
+        };
+      })();
+
+      /** Reusable, pure factory — the one place an order+stage becomes a
+       *  notification object (Part 17: createNotification()). */
+      function createNotification(order, stageKey) {
+        const tpl = NOTIF_TEMPLATES[stageKey];
+        if (!tpl) return null;
+        const ts = stageKey === "cancelled"
+          ? order.created_at // no dedicated cancelled_at column exists yet — created_at is the safe fallback
+          : order[STAGE_TIMESTAMP_FIELD[stageKey]];
+        if (!ts) return null;
+        const id = `${order.order_id}:${stageKey}`;
+        return {
+          id,
+          type: "order",
+          icon: tpl.icon,
+          title: tpl.title,
+          message: tpl.message(order),
+          orderId: order.order_id,
+          ts,
+          isRead: NotificationReadStore.isRead(id),
+        };
+      }
+
+      /** All applicable stage notifications for a single order, oldest → newest. */
+      function deriveOrderNotifications(order) {
+        const normalized = normalizeStatus(order.status);
+        const stages = normalized === "cancelled"
+          ? ["received", "cancelled"]
+          : STAGE_KEYS.slice(0, STAGE_KEYS.indexOf(STAGE_STATUS_MAP[order.status] || "received") + 1);
+        return stages.map(s => createNotification(order, s)).filter(Boolean);
+      }
+
+      /** Active announcements, reshaped into the same notification shape
+       *  so the Notification Center can render one unified list (Part 8). */
+      async function loadAnnouncementsAsNotifications() {
+        try {
+          const { data, error } = await db
+            .from("announcements")
+            .select("id, title, message, created_at")
+            .eq("active", true)
+            .order("created_at", { ascending: false })
+            .limit(20);
+          if (error || !data) return [];
+          return data.map(a => {
+            const id = `announcement:${a.id}`;
+            return {
+              id, type: "announcement", icon: "📢",
+              title: a.title || "Announcement", message: a.message || "",
+              orderId: null, ts: a.created_at,
+              isRead: NotificationReadStore.isRead(id),
+            };
+          });
+        } catch (e) {
+          console.error("loadAnnouncementsAsNotifications error:", e);
+          return [];
+        }
+      }
+
+      /** Reusable loader (Part 17: loadNotifications()) — every order tied
+       *  to `phone`, turned into notifications, merged with active
+       *  announcements, newest first. Bounded to 30 orders for
+       *  performance (Part 15) — plenty for a snack-delivery order
+       *  history on one phone number. */
+      async function loadNotifications(phone) {
+        if (!phone) return [];
+        try {
+          const [{ data: orders, error }, announcementNotifs] = await Promise.all([
+            db.rpc("get_order_notifications", { p_phone: phone, p_limit: 30 }),
+            loadAnnouncementsAsNotifications(),
+          ]);
+
+          if (error) { console.error("loadNotifications error:", error); return notifCache; }
+
+          const orderNotifs = (orders || []).flatMap(deriveOrderNotifications);
+          const merged = [...orderNotifs, ...announcementNotifs].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+          notifCache = merged;
+          updateNotifBadge();
+          if (notifPanelOpen) renderNotificationCenter();
+          return merged;
+        } catch (e) {
+          console.error("loadNotifications unexpected error:", e);
+          return notifCache;
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §2/§12 — RENDERING (Part 17: renderNotificationCard/Center)
+      // ═══════════════════════════════════════════════════════════════
+      function relativeTime(iso) {
+        if (!iso) return "";
+        const diffMs = Date.now() - new Date(iso).getTime();
+        const mins = Math.round(diffMs / 60000);
+        if (mins < 1) return "just now";
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.round(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        const days = Math.round(hrs / 24);
+        return `${days}d ago`;
+      }
+
+      function renderNotificationCard(notif, { compact = false } = {}) {
+        const unreadCls = notif.isRead ? "" : "unread";
+        const typeCls = notif.type === "announcement" ? "announcement" : "";
+        const d = notif.ts ? new Date(notif.ts) : null;
+        const dateStr = d ? d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
+        const timeStr = d ? d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "";
+        return `
+          <div class="notif-card ${unreadCls} ${typeCls}" data-notif-id="${escHtml(notif.id)}" onclick="markAsRead('${escHtml(notif.id)}')">
+            <div class="notif-icon">${notif.icon}</div>
+            <div class="notif-body">
+              <div class="notif-top-row">
+                <div class="notif-title">${escHtml(notif.title)}</div>
+                ${!notif.isRead ? '<div class="notif-dot"></div>' : ""}
+              </div>
+              <div class="notif-message">${escHtml(notif.message)}</div>
+              ${compact ? "" : `
+              <div class="notif-meta">
+                ${notif.orderId ? `<span class="notif-order-tag">#${escHtml(notif.orderId)}</span>` : ""}
+                <span>${escHtml(dateStr)}</span>
+                <span>${escHtml(timeStr)}</span>
+                <span>${relativeTime(notif.ts)}</span>
+              </div>`}
+            </div>
+          </div>`;
+      }
+
+      /** Part 17: renderNotificationCenter() — the full drawer list. */
+      function renderNotificationCenter() {
+        const body = document.getElementById("notif-panel-body");
+        if (!notifCache.length) {
+          body.innerHTML = `
+            <div class="notif-empty">
+              <span class="emoji">🔔</span>
+              <div>No new notifications.</div>
+            </div>`;
+          return;
+        }
+        body.innerHTML = notifCache.map(n => renderNotificationCard(n)).join("");
+      }
+
+      /** Part 4/17: renderOrderUpdates() — just the order on screen,
+       *  oldest → newest, sitting directly under its delivery timeline. */
+      function renderOrderUpdates(order) {
+        const notifs = deriveOrderNotifications(order).sort((a, b) => new Date(a.ts) - new Date(b.ts));
+        const cardEl = document.getElementById("od-updates-card");
+        const listEl = document.getElementById("od-updates-list");
+        if (notifs.length === 0) { cardEl.classList.add("hidden"); return; }
+        cardEl.classList.remove("hidden");
+        listEl.innerHTML = notifs.map(n => `
+          <div class="update-row">
+            <div class="update-time">${n.ts ? fmtDateTime(n.ts).split(",").pop().trim() : "—"}</div>
+            <div class="update-icon">${n.icon}</div>
+            <div class="update-label">${escHtml(n.title)}</div>
+          </div>`).join("");
+      }
+
+      function updateNotifBadge() {
+        const unreadCount = notifCache.filter(n => !n.isRead).length;
+        const badge = document.getElementById("notif-badge");
+        badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+        badge.classList.toggle("hidden", unreadCount === 0);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // §7 — READ STATUS
+      // ═══════════════════════════════════════════════════════════════
+      function markAsRead(notifId) {
+        NotificationReadStore.markRead(notifId);
+        const notif = notifCache.find(n => n.id === notifId);
+        if (notif) notif.isRead = true;
+        updateNotifBadge();
+        if (notifPanelOpen) renderNotificationCenter();
+      }
+      function markAllAsRead() {
+        NotificationReadStore.markManyRead(notifCache.map(n => n.id));
+        notifCache.forEach(n => { n.isRead = true; });
+        updateNotifBadge();
+        if (notifPanelOpen) renderNotificationCenter();
+      }
+      document.getElementById("notif-mark-all-btn").addEventListener("click", markAllAsRead);
+
+      // ═══════════════════════════════════════════════════════════════
+      // Bell + drawer open/close
+      // ═══════════════════════════════════════════════════════════════
+      function openNotificationCenter() {
+        notifPanelOpen = true;
+        renderNotificationCenter();
+        document.getElementById("notif-overlay").classList.add("open");
+      }
+      function closeNotificationCenter() {
+        notifPanelOpen = false;
+        document.getElementById("notif-overlay").classList.remove("open");
+      }
+      document.getElementById("notif-bell-btn").addEventListener("click", openNotificationCenter);
+      document.getElementById("notif-close-btn").addEventListener("click", closeNotificationCenter);
+      document.getElementById("notif-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "notif-overlay") closeNotificationCenter();
+      });
+
+      // ═══════════════════════════════════════════════════════════════
+      // §5 — REALTIME (Part 17: subscribeToNotifications())
+      // Deliberately its own channel, separate from subscribeRealtime()
+      // in the Phase 5.1 tracking module — that one stays exactly as it
+      // was, scoped to a single order_id, and keeps working unchanged.
+      // This one is scoped by phone number, across every order that
+      // customer has, so the bell/center stay live no matter which order
+      // (if any) happens to be on screen.
+      // ═══════════════════════════════════════════════════════════════
+      function subscribeToNotifications(phone) {
+        if (notifRealtimeCh) { db.removeChannel(notifRealtimeCh); notifRealtimeCh = null; }
+        try {
+          notifRealtimeCh = db
+            .channel(`customer-notifications-${phone}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `phone=eq.${phone}` }, () => {
+              loadNotifications(phone);
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => {
+              loadNotifications(phone);
+            })
+            .subscribe((status) => {
+              if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                // Non-fatal — Supabase retries automatically; the bell will
+                // simply catch up next time an update lands. (Part 13)
+                console.warn("Notifications realtime channel issue:", status);
+              }
+            });
+        } catch (e) {
+          console.error("subscribeToNotifications error:", e);
+        }
+      }
+
+      /** Called once we learn the customer's phone number, from wherever
+       *  (a loaded order, a phone search, or ?phone= in the URL). Safe to
+       *  call repeatedly — it's a no-op if the phone hasn't changed. */
+      function setCustomerPhoneContext(phone) {
+        if (!phone || phone === currentPhone) {
+          if (phone) document.getElementById("notif-bell-btn").classList.remove("hidden");
+          return;
+        }
+        currentPhone = phone;
+        document.getElementById("notif-bell-btn").classList.remove("hidden");
+        document.getElementById("hub-link").href = `customer-hub.html?phone=${encodeURIComponent(phone)}`; // Phase 5.3
+        loadNotifications(phone);
+        subscribeToNotifications(phone);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // INIT
+      // ═══════════════════════════════════════════════════════════════
+      handleTrackingURL();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/track-sw.js", { scope: "/" }).catch(() => {
+          /* Non-fatal — the page works perfectly well without a service worker. */
+        });
+      }
+    </script>
+  </body>
+</html>

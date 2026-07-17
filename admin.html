@@ -14464,6 +14464,16 @@
         btn.innerHTML = `<span class="emp-spinner" style="width:14px;height:14px;border-width:2px"></span> Creating…`;
 
         try {
+          // IMPORTANT: db.auth.signUp() below replaces the browser's active
+          // session with the brand-new employee's session (since email
+          // confirmation is off for this project). That means the insert
+          // that follows would otherwise run as the new, not-yet-admin
+          // employee and get rejected by the emp_admin_write RLS policy.
+          // Capture the admin's session now so we can restore it right
+          // after signUp succeeds, before touching the employees table.
+          const { data: adminSessionData } = await db.auth.getSession();
+          const adminSession = adminSessionData?.session;
+
           // Step 1 — Create Supabase Auth user via admin API (anon key + signUp)
           const tempPassword = genTempPassword();
           const { data: signUpData, error: signUpErr } = await db.auth.signUp({
@@ -14478,6 +14488,16 @@
           if (signUpErr) throw new Error("Auth error: " + signUpErr.message);
           const userId = signUpData?.user?.id;
           if (!userId) throw new Error("No user ID returned from Auth signup.");
+
+          // Restore the admin's session immediately, before any RLS-checked
+          // queries run, so the insert below is correctly evaluated as the
+          // admin/owner performing this action — not the new employee.
+          if (adminSession) {
+            await db.auth.setSession({
+              access_token: adminSession.access_token,
+              refresh_token: adminSession.refresh_token,
+            });
+          }
 
           // Step 2 — Insert into employees table
           // status must be exactly one of: 'active', 'offline', 'inactive' (DB constraint)
